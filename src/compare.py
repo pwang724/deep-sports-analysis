@@ -26,12 +26,13 @@ def on_court(df: pd.DataFrame, W=1920, H=1080) -> pd.Series:
     h = df.y2 - df.y1
     cx = (df.x1 + df.x2) / 2
     fy = df.y2
-    # Far baseline sits around y=0.33H, near baseline around y=0.93H in this broadcast framing.
-    # Court width grows linearly from ~0.30W at the far baseline to ~1.0W at the near one.
-    frac = ((fy - 0.30 * H) / (0.65 * H)).clip(0, 1)
-    half_w = (0.16 + 0.34 * frac) * W
+    # In this broadcast framing the far baseline is at y~0.20H spanning ~0.34W, the near
+    # baseline at y~0.89H spanning ~0.84W. Half-width grows linearly between them, plus a
+    # margin so a player chasing a wide ball is still counted.
+    frac = ((fy - 0.20 * H) / (0.70 * H)).clip(0, 1)
+    half_w = (0.17 + 0.26 * frac) * W + 0.05 * W
     inside = (cx - W / 2).abs() < half_w
-    return inside & (fy > 0.30 * H) & (fy < 1.0 * H) & (h > 60) & (h < 600)
+    return inside & (fy > 0.19 * H) & (fy < 1.0 * H) & (h > 60) & (h < 600)
 
 
 def main() -> None:

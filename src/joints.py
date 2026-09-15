@@ -45,6 +45,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--stride", type=int, default=1, help="process every Nth frame")
     p.add_argument("--threshold", type=float, default=0.4, help="RF-DETR box confidence")
     p.add_argument("--backends", default="rfdetr,vitpose")
+    p.add_argument("--far-crop", default="480,0,1440,540", help="x1,y1,x2,y2 of the far-court region; '' to disable")
+    p.add_argument("--far-scale", type=float, default=2.0)
     p.add_argument("--vitpose", default="models/vitpose-plus-huge")
     p.add_argument("--out", default="output/joints")
     p.add_argument("--device", default="mps" if torch.backends.mps.is_available() else "cpu")
@@ -83,6 +85,45 @@ def run_vitpose(proc, model, device: str, rgb: np.ndarray, xyxy: np.ndarray):
     return xy, sc
 
 
+def detect_two_scale(rf, rgb: np.ndarray, threshold: float, far_crop, far_scale: float):
+    """Full-frame pass plus an upscaled pass on the far-court region.
+
+    The far player is ~60-120 px tall in a 1080p broadcast frame, which the
+    default inference resolution shrinks below what the detector sees. A 2x
+    crop of the far half fixes that. Returns merged (xyxy, kp_xy, kp_conf,
+    det_conf); far-crop detections replace overlapping full-frame ones.
+    """
+    kp = rf.predict(rgb, threshold=threshold, include_source_image=False)
+    xyxy = kp.data["xyxy"].astype(float) if len(kp.xy) else np.zeros((0, 4))
+    kxy = kp.xy.astype(float) if len(kp.xy) else np.zeros((0, 17, 2))
+    kc = kp.confidence.astype(float) if len(kp.xy) else np.zeros((0, 17))
+    dc = np.asarray(kp.detection_confidence, dtype=float) if len(kp.xy) else np.zeros(0)
+    if far_crop is None:
+        return xyxy, kxy, kc, dc
+    x1, y1, x2, y2 = far_crop
+    crop = cv2.resize(rgb[y1:y2, x1:x2], None, fx=far_scale, fy=far_scale, interpolation=cv2.INTER_CUBIC)
+    kf = rf.predict(crop, threshold=threshold, include_source_image=False)
+    if not len(kf.xy):
+        return xyxy, kxy, kc, dc
+    fb = kf.data["xyxy"].astype(float) / far_scale + [x1, y1, x1, y1]
+    fk = kf.xy.astype(float) / far_scale + [x1, y1]
+    fc = kf.confidence.astype(float)
+    fd = np.asarray(kf.detection_confidence, dtype=float)
+    # keep only crop detections whose box lies inside the crop region (not clipped at its edge)
+    inside = (fb[:, 1] > y1 + 2) & (fb[:, 3] < y2 - 2)
+    fb, fk, fc, fd = fb[inside], fk[inside], fc[inside], fd[inside]
+    # drop full-frame detections that overlap a crop detection
+    keep = np.ones(len(xyxy), bool)
+    for i, b in enumerate(xyxy):
+        for f in fb:
+            ix = max(0, min(b[2], f[2]) - max(b[0], f[0])); iy = max(0, min(b[3], f[3]) - max(b[1], f[1]))
+            inter = ix * iy
+            if inter / (min((b[2]-b[0])*(b[3]-b[1]), (f[2]-f[0])*(f[3]-f[1])) + 1e-9) > 0.5:
+                keep[i] = False
+    return (np.concatenate([xyxy[keep], fb]), np.concatenate([kxy[keep], fk]),
+            np.concatenate([kc[keep], fc]), np.concatenate([dc[keep], fd]))
+
+
 def draw(frame: np.ndarray, xy: np.ndarray, sc: np.ndarray, color, track_id, box, thr=0.3):
     for a, b in SKELETON:
         if sc[a] > thr and sc[b] > thr:
@@ -108,6 +149,7 @@ def main() -> None:
     cap.set(cv2.CAP_PROP_POS_FRAMES, f0)
 
     rf = load_rfdetr()
+    far_crop = tuple(int(v) for v in a.far_crop.split(",")) if a.far_crop else None
     vp = load_vitpose(a.vitpose, a.device) if "vitpose" in backends else None
     tracker = sv.ByteTrack(frame_rate=fps / a.stride)
 
@@ -124,15 +166,15 @@ def main() -> None:
         rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
 
         t = time.time()
-        kp = rf.predict(rgb, threshold=a.threshold, include_source_image=False)
+        xyxy, kxy, kc, dc = detect_two_scale(rf, rgb, a.threshold, far_crop, a.far_scale)
         timing["rfdetr"] += time.time() - t
 
-        n = len(kp.xy)
+        n = len(xyxy)
         if n:
             det = sv.Detections(
-                xyxy=kp.data["xyxy"].astype(float),
-                confidence=np.asarray(kp.detection_confidence, dtype=float) if kp.detection_confidence is not None else None,
-                class_id=np.asarray(kp.class_id),
+                xyxy=xyxy,
+                confidence=dc,
+                class_id=np.zeros(n, dtype=int),
                 data={"idx": np.arange(n)},
             )
             det = tracker.update_with_detections(det)
@@ -151,7 +193,7 @@ def main() -> None:
             box = det.xyxy[j]
             base = {"frame": fi, "t": fi / fps, "track_id": tid, "x1": box[0], "y1": box[1], "x2": box[2], "y2": box[3],
                     "det_conf": float(det.confidence[j]) if det.confidence is not None else np.nan}
-            xy, sc = kp.xy[src], kp.confidence[src]
+            xy, sc = kxy[src], kc[src]
             rows.append({**base, "backend": "rfdetr", **{f"{COCO17[k]}_{c}": v for k in range(17) for c, v in zip("xyc", (xy[k, 0], xy[k, 1], sc[k]))}})
             draw(bgr, xy, sc, COLORS["rfdetr"], tid, box)
             if vp is not None:
