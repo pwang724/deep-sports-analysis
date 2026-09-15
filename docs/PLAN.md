@@ -3,7 +3,7 @@
 Tennis video analysis from unfixed, handheld or broadcast footage. Three
 separate vision problems feed one shared coordinate system, and everything
 analytical is computed downstream in plain NumPy. Model choices are backed by
-[RESEARCH.md](RESEARCH.md).
+[RESEARCH.md](RESEARCH.md). Data in [DATASETS.md](DATASETS.md).
 
 ```
 video frame
@@ -31,8 +31,8 @@ Reference for the pipeline shape and the analysis-heavy style:
 | Players, if feet matter | RTMW-l via `rtmlib` | 133 keypoints incl. 6 foot points, Apache, runs on CPU. |
 | Players, real-time local | RF-DETR Keypoint | Best single-stage: 71.8 AP at 9.7 ms on T4, Apache. Still preview. |
 | Court | TennisCourtDetector dataset (8,841 frames, 14 pts) fine-tuned into either a heatmap CNN or RF-DETR Keypoint with a 14-point skeleton | Field standard, 3.8 px error. Camera moves so corners are re-found per frame. Add perspective augmentation and a few hundred self-labelled handheld frames. |
-| Ball | WASB (NTT, MIT, tennis weights) | Multi-frame heatmap trackers beat box detectors in every controlled comparison (F1 95.6 vs 47 for single-frame on tennis). Only open tracker trained on footage with camera motion. |
-| Ball, fallback | RF-DETR-S/M detection at 1024 px with tiling | If the ball is large in frame or WASB fails on handheld. Best small-object AP among real-time detectors. |
+| Ball, first attempt | RF-DETR-S/M detection at 1024 px, fine-tuned on RacketVision | One tool, one training loop. Best small-object AP among real-time detectors. Decide by measurement, not literature. |
+| Ball, if recall is poor | RF-DETR with 3 stacked frames (9 input channels), then WASB (NTT, MIT, tennis weights) | The heatmap trackers win because they see motion across 3 frames, not because of architecture. Try giving RF-DETR the same input first. WASB is the only open tracker trained on footage with camera motion. |
 | 3D pose, later | TRAM + WHAM (MIT) or Fast SAM 3D Body | CalTennis benchmark says joint angles are reliable but monocular depth and foot contact are not. Get court position from the homography, never from 3D pose. |
 
 Rejected: TrackNetV5 (best numbers, no weights, proprietary). TrackNetV3/V4
@@ -59,9 +59,11 @@ for handheld (assume a static camera). Manual corner clicks and Hough lines
    detections, refit the homography when reprojection error grows or a cut is
    detected. Map player feet onto a top-down court. This already gives footwork
    and positioning.
-3. **Ball.** Stabilize frames with the tracked homography, run WASB, smooth,
-   fill gaps, fit parabolas between bounces. Fine-tune on RacketVision plus
-   own labels. Fall back to RF-DETR if recall is poor.
+3. **Ball.** Fine-tune RF-DETR on RacketVision tennis at 1024 px. Measure
+   ball recall on the held-out split against WASB's published F1 of 95.6. If
+   the gap is under ~10 points, keep RF-DETR. If larger, try stacked-frame
+   input, then WASB. Either way: stabilize frames with the tracked homography,
+   smooth, fill gaps, fit parabolas between bounces.
 4. **Analytics.** Speed, bounce location, contact point, shot classification,
    all in court coordinates.
 
