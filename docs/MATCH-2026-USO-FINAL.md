@@ -11,108 +11,86 @@ points. Zverev won nearly all rallies over 9 shots. Turning points named by
 reporters: the set-2 tiebreak (Zverev 5-0 up), and the break to open set 4 on
 a 19-ball rally.
 
-## Data layers, from cheapest to hardest
+## Goal
+
+All analysis derived from the broadcast video. Where each player's errors
+come from on the court, which strokes lose rallies, serve and return
+positions by score state, movement and recovery, and how it shifted over the
+match. No Hawk-Eye, no charting project. Video in, tactical table out.
+
+## The one input: video
+
+- **ESPN Unlimited** has the full-match on-demand replay. The only complete
+  source. Screen-record for personal analysis. Fubo free trial with DVR is
+  the alternative.
+- **usopen.org / US Open YouTube** post 10-15 min extended highlights, free.
+  Good for pipeline development, not for match-level stats.
+- Do not redistribute frames.
+
+What the broadcast gives: ~3.5 h, ~380k frames at 30 fps, of which 15-20% is
+live play. Main camera is fixed, elevated, end-on behind the baseline, the
+easy case and what every public dataset was built on. Replays, crowd shots,
+close-ups are camera cuts to detect and drop. The scoreboard graphic is on
+screen throughout and is free ground truth.
+
+## Derivation pipeline
 
 ```
-layer                       what it gives                 where            status
-1  aggregate box score      aces, serve %, BP, W/UE       ATP, tennis.com  free, now
-2  point-by-point score     every point, who served,      usopen.org IBM,  free, now
-                            score state, momentum curve   Sofascore
-3  shot-by-shot log         each shot: type, direction,   Match Charting   volunteer, not yet
-                            depth, rally length, outcome  Project (MCP)    charted (as of May commit)
-4  tracking data            ball + player xy per frame,   Hawk-Eye via     CLOSED. Not public.
-                            speeds, contact points        ATP Tennis IQ,
-                                                          IBM, TDI
-5  video                    the broadcast                 ESPN / ESPN      subscription
-                                                          Unlimited replay
+broadcast video
+    |
+    +--> cut detection + rally segmentation     keep only end-on live play
+    |
+    +--> scoreboard OCR                         point winner, score state, server
+    |                                           (free labels, validates segmentation)
+    +--> court keypoints -> homography          pixels -> court meters, per rally
+    |
+    +--> players: box + track + pose            court position every frame,
+    |                                           stroke type from pose
+    +--> ball track                             contact frames, bounce xy,
+    |                                           rally length, who hit last
+    v
+per-shot table:
+  player | shot # | stroke | contact (x,y m) | bounce (x,y m)
+  | rally length | point outcome | score state
 ```
 
-Momentum and tactical insight needs layers 2 and 3. Layer 4 is what this
-repo's CV pipeline exists to reconstruct from layer 5.
+## Questions that table answers
 
-## Layer 1: aggregate stats (have it)
+- Error origin by court zone and stroke: contact position of each
+  point-ending shot, split forehand / backhand / slice / volley.
+- Which strokes each player loses rallies on, by rally-length bucket.
+- Serve placement and return contact position by score state.
+- Distance covered, recovery position after each shot, how far a player was
+  pushed wide before the error.
+- All of the above before vs after the set-2 tiebreak.
 
-- ATP report: https://www.atptour.com/en/news/zverev-shelton-us-open-2026-final-report
-- tennis.com match page (serve / return / BP table): https://www.tennis.com/tournaments/us-open/matches/a-zverev-vs-b-shelton-2026-09-13
-- usopen.org recap: https://www.usopen.org/en_US/news/articles/2026-09-13/alexander_zverev_defeats_ben_shelton_to_win_2026_us_open.html
+## Build order
 
-Enough for a summary, useless for momentum.
+1. Video. Extract frames, detect cuts, segment rallies. No model needed.
+2. Scoreboard OCR. Point outcomes and server for free.
+3. Court keypoints + homography. Broadcast angle, existing 8,841-frame model
+   works nearly as is.
+4. Players: detect, track, pose. Court position and stroke type. This alone
+   yields contact positions and stroke-level error maps, most of the
+   tactical story, timing the swing from pose.
+5. Ball. Adds bounce locations, rally length, exact contact frames. Hardest
+   piece, and 1-4 already deliver "which shot from where" without it.
 
-## Layer 2: point-by-point score (get this first)
+Scaffold candidate: HarshTomar1234/Tennis-Vision (MIT) does roughly 1, 3, 4,
+5 on broadcast footage.
 
-Every point in order with server, score before the point, and outcome. From
-this you compute: momentum curves (rolling point win %), win probability per
-point, leverage of each point, break-point conversion timeline, serve
-dominance by set, runs of consecutive points, tiebreak sequence.
+## Reference numbers to sanity-check against
 
-Sources:
-- **usopen.org IBM match page.** The official site keeps a per-match page
-  with the IBM point-by-point feed and "Match Insights" (win-probability
-  swings, key points). Find it from the draws page for the men's final. Data
-  loads from a JSON endpoint behind the page; capture it from the browser
-  network tab.
-- **Sofascore / Flashscore.** Both show point-by-point for Slam matches
-  including serve speed on some points. Sofascore has an unofficial JSON API
-  (`api.sofascore.com/api/v1/event/<id>/point-by-point`). Scrapeable, not
-  licensed.
-- **Sackmann tennis_slam_pointbypoint.** Jeff Sackmann republishes Slam
-  point-by-point CSVs (score, server, rally length, serve speed where IBM
-  exposed it). Updated in batches, usually after the tournament. Check
-  https://github.com/JeffSackmann/tennis_slam_pointbypoint for a
-  `2026-usopen-points.csv`. CC BY-NC-SA.
+From reports: Shelton 47 W / 47 UE, 10 aces, 4 DF. Zverev 9 aces, 6 DF, 84%
+first-serve points won, 4/6 BP. Zverev won nearly all rallies over 9 shots.
+Shelton won 22 of his last 24 service points. If the pipeline's counts land
+near these, the segmentation and outcome labelling are right.
 
-## Layer 3: shot-by-shot (the real tactical layer)
+## Other data that exists but is not the goal
 
-The Match Charting Project format records every shot: serve direction, return
-type and depth, each rally shot's stroke and direction, how the point ended.
-With it you get: serve placement patterns by score state, return depth,
-backhand-cross vs down-the-line ratios, net approaches, who controlled
-rallies of each length, and how any of those shifted after the set-2 tiebreak.
-
-- Repo: https://github.com/JeffSackmann/tennis_MatchChartingProject
-  (CC BY-NC-SA). Last commit May 25 2026. **The final is not charted yet.**
-  Slam finals are almost always charted by volunteers within a few weeks.
-  Watch `charting-m-matches.csv` for a `20260913-M-US_Open-F` row.
-- Tennis Abstract renders charted matches at
-  `tennisabstract.com/charting/20260913-M-US_Open-F-Alexander_Zverev-Ben_Shelton.html`
-  once it lands. Currently 404.
-- **Or chart it yourself.** The MCP instructions doc defines the notation.
-  A 4-set match is ~4 hours of work with the video. Submitting it back is how
-  the project grows.
-
-## Layer 4: tracking data (closed)
-
-Hawk-Eye ball and player positions at every frame, serve speed and placement,
-contact heights, player distance covered. This exists for the match. It is
-owned by the USTA / Sony and licensed to IBM (fan features), ATP Tennis IQ
-(players and coaches only), and TDI / Sportradar (betting and media). None of
-it is downloadable. IBM's site surfaces fragments: serve speed per point,
-"Match Insights" summaries, sometimes rally length.
-
-The only way to get positional data independently is to run this repo's
-pipeline on the broadcast. That is the project.
-
-## Layer 5: video
-
-- **Full match:** ESPN / ESPN Unlimited on-demand replay (US subscription).
-  The broadcast is a fixed elevated end-on camera for most points, which is
-  the easy case for court detection and matches every public dataset.
-- **Highlights:** usopen.org and the US Open YouTube channel post 10-15 minute
-  extended highlights within a day, free.
-- Recording the replay for personal analysis is a rights question. Do not
-  redistribute frames.
-
-## Suggested first analysis, no CV needed
-
-1. Pull the point-by-point from usopen.org or Sofascore.
-2. Compute a win-probability curve using a standard tennis Markov model
-   with each player's in-match serve-win percentages.
-3. Find the top 10 leverage points (largest win-probability swing). The
-   set-2 tiebreak and the set-4 opening break should dominate.
-4. Rolling 20-point serve-win % per player to show Shelton's collapse in set
-   1 and recovery in set 3 (22 of last 24 service points).
-5. When MCP charting lands, layer on rally-length buckets and shot direction
-   by score state to explain why the long rallies went to Zverev.
-
-Then the CV pipeline adds what none of the above has: where each player
-stood, contact points, movement, and court coverage over time.
+- Point-by-point score: usopen.org IBM feed, Sofascore, Sackmann
+  tennis_slam_pointbypoint. Useful only to cross-check OCR.
+- Match Charting Project shot-by-shot: not charted yet (last commit May
+  2026). Would be a validation set for the pipeline's stroke labels once it
+  lands.
+- Hawk-Eye tracking: closed, licensed to IBM / ATP Tennis IQ / TDI.
