@@ -78,6 +78,8 @@ def main() -> None:
             k = np.array(ann["keypoints"], dtype=float).reshape(-1, 3)[:17]
             gt, vis = k[:, :2], k[:, 2]
             bx, by, bw, bh = ann["bbox"]
+            if bw < 4 or bh < 4 or (vis > 0).sum() < 5:
+                continue  # degenerate label
             gt_box = np.array([bx, by, bx + bw, by + bh], dtype=float)
             area = bw * bh
 

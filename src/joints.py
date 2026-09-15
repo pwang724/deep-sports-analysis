@@ -72,6 +72,13 @@ def run_vitpose(proc, model, device: str, rgb: np.ndarray, xyxy: np.ndarray):
     """Return (N, 17, 2) xy and (N, 17) scores for boxes xyxy on one RGB frame."""
     if len(xyxy) == 0:
         return np.zeros((0, 17, 2)), np.zeros((0, 17))
+    xyxy = np.asarray(xyxy, dtype=float)
+    # A box thinner than 2 px makes the processor's affine transform singular.
+    bad = (xyxy[:, 2] - xyxy[:, 0] < 2) | (xyxy[:, 3] - xyxy[:, 1] < 2)
+    if bad.any():
+        xyxy = xyxy.copy()
+        xyxy[bad, 2] = xyxy[bad, 0] + np.maximum(xyxy[bad, 2] - xyxy[bad, 0], 2)
+        xyxy[bad, 3] = xyxy[bad, 1] + np.maximum(xyxy[bad, 3] - xyxy[bad, 1], 2)
     xywh = xyxy.copy().astype(float)
     xywh[:, 2] -= xywh[:, 0]
     xywh[:, 3] -= xywh[:, 1]
