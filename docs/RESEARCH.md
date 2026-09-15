@@ -118,6 +118,16 @@ ball is large in frame or WASB fails on your footage.
   N frames, propagate the homography with Lucas-Kanade tracked corners, refit
   when reprojection error grows or a cut is detected. Tennis-AI-Tracker (Sep
   2026) and the Stanford EE367 smartphone pipeline both do this.
+- yastrebksv metrics at 7 px tolerance: heatmap alone 0.936 precision, plus
+  line refinement and homography fill-in 0.963, 1.83 px median error. Inference
+  is per-frame with no tracking, broadcast views only.
+- Soccer field-registration code that transfers: TVCalib (MIT, segment
+  reprojection optimizer, handles lens distortion), KpSFR (MIT), No Bells Just
+  Whistles / PnLCalib (GPL-2.0, avoid in a closed product). BroadTrack (WACV
+  2025) and Theiner CVPRW 2026 model PTZ cameras with a fixed position, which a
+  handheld phone violates, so track the full 8-DoF homography instead.
+- Practical smoothing recipe from the SoccerNet 2024 winner: per-frame
+  estimate, then Savitzky-Golay filter on the camera parameters.
 
 ## 5. Datasets worth using
 
@@ -147,6 +157,39 @@ jeremyipark/vision-demos.
 Commercial single-camera analogue: SwingVision (iPhone, on-device, fixed
 elevated baseline position, patents describe single-frame CNN candidates plus
 physics-consistent trajectory fitting plus court homography).
+
+## 8. Shot classification and event detection
+
+- **Stroke type from pose + ball: BST** (CVPRW 2026, MIT, pretrained weights
+  for TenniSet). Input is 2D pose plus ball trajectory plus court position.
+  99.2% on TenniSet 6 classes, 83% on ShuttleSet 25 classes. The ball stream is
+  the main gain. Most reusable open classifier for tennis.
+- **Hit and bounce spotting: E2E-Spot / F3ED** on the Tennis (3,345 clips,
+  6 events, frame-accurate) and F3Set data. BSD-3 code, video via YouTube IDs.
+- **Cheap bounce detector:** CatBoost on windowed ball x/y differences
+  (TennisProject, no license; RallyVision port is Apache). Exact-frame
+  precision 92%, recall 62%; within 1 frame 79% / 86%.
+- **Rally boundaries:** audio racket-impact clustering (TennisExpert recipe) or
+  a rule-based state machine on ball track (tennisvision repo).
+- **Point outcome labels** exist only in F3Set / TennisTV.
+- Pose-only stroke classifiers (MediaPipe + transformer) top out around 84% on
+  forehand vs backhand. Add the ball.
+
+## 9. Commercial products, what they actually do
+
+| Product | Cameras | Approach |
+|---|---|---|
+| SwingVision | 1 iPhone, fixed on fence, 60 fps | On-device, Neural Engine. Patent US 11,893,808: learned direct 2D-to-3D regression using court lines as reference, trained against radar/LiDAR. Claims speed within 10%, line calls 97%. |
+| UNFORCE (ex AceSense) | 1 phone, upload | CatBoost + MediaPipe pose + TrackNet. Published F1: forehand 0.92, backhand 0.91, serve 0.88. Serve speed median error 6 km/h. Court keypoints 99% hard, 97% clay. Notes handheld homography drift as a failure mode. |
+| Baseline Vision | 2 cams in one net-post unit | $1,999, trajectory extrapolation to bounce |
+| PlayReplay | 4 cams, net posts | ITF Silver, USTA Pro Circuit 2026 |
+| Zenniz | 4 cams + 30 mics | audio-video fusion, 7 mm |
+| Bolt6 | 12 cams | ITF Gold, Australian Open |
+| Hawk-Eye | 10-18 cams | ITF Gold, 2.6 mm; SkeleTRACK 29 body + 7 racket points |
+
+Only SwingVision and UNFORCE do single-phone ball tracking. Everything with
+certified line calling uses 2 or more fixed cameras. UNFORCE's stack is
+essentially this repo's plan, which is a useful sanity check on feasibility.
 
 ## 7. Post-June-2026 items
 
