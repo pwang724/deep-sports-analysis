@@ -148,15 +148,34 @@ exists. Expect to self-label a few thousand frames.
 
 ## 6. Existing open-source tennis systems
 
-None are production grade. All assume a fixed broadcast camera except
-Tennis-AI-Tracker (Sep 2026, YOLO26, 0 stars, unproven). Most reuse
-TennisCourtDetector for court and TrackNet or YOLO for ball. Tutorial repo:
-abdullahtarek/tennis_analysis. Reference for pipeline style:
-jeremyipark/vision-demos.
+| Repo | Stars | License | Camera | Notes |
+|---|---|---|---|---|
+| HarshTomar1234/Tennis-Vision | 73 | MIT | per-frame court | Most rigorous open pipeline. TrackNet ball, ResNet50 14-pt court re-detected every frame, YOLOv8x + ByteTrack players, trained contact/bounce classifier, 3D ball parabola. Publishes honest metrics: contact/bounce recall 72%, precision 96%. Updated Sep 2026. |
+| yo-WASSUP/Good-Tennis | 182 | Apache 2.0 | static, 4-click | YOLO ball, RTMPose/YOLO-pose players, homography, rally detection, heatmaps. Sibling Good-Badminton has 959 stars. Created Jun 2026. |
+| abdullahtarek/tennis_analysis | 887 | none | static, frame 0 | The YouTube tutorial. YOLOv5 ball, ResNet50 court on first frame only. Spawned ~15 clones. |
+| yastrebksv/TennisProject | 231 | none | per-frame court | Companion to TennisCourtDetector and TrackNet. CatBoost bounce. Most-forked backbone. |
+| ArtLabss/tennis-tracking | 712 | Unlicense | broadcast pan | TrackNet + YOLOv3 + sktime bounce. Dormant, TF1-era deps. |
+| vahehambardzumyan/Tennis_Vision | 51 | none | per-frame fit | Notebook. Court fit from painted lines via cross-ratio invariants, 0.21 px. Audio spectral flux for contacts. Aug 2026. |
+| JefftheGuy666/Best-Ball-Track | 62 | none | static | GridTrackNet + Kalman, physics bounce, IN/OUT line calls. Sep 2026. |
+| AggieSportsAnalytics/CourtCheck | 47 | none | static | Full web product: Next.js, FastAPI on Modal, CatBoost bounce, GPT scouting reports. |
+| rondo-labs/Padex (padel) | 18 | GPL-3.0 | static, 12-click | Most productised racket-sport pipeline. TrackNet + Kalman ball, 15-class pose shot classifier. |
+
+- No open tennis repo handles a genuinely handheld camera. Best available is
+  per-frame court re-detection, which tolerates broadcast pan and zoom.
+- Only Tennis-Vision (MIT) and Good-Tennis (Apache) have a permissive license,
+  downloadable weights, and run end to end today. The high-star classics have
+  no license.
+- Shot classification is the weakest link everywhere. Tennis-Vision reports
+  MediaPipe forehand/backhand at 54%.
+- roboflow/sports (5.4k stars, MIT) has no tennis content, only soccer and
+  basketball.
+- NVIDIA released a 31B tennis video-QA model on Sep 10 2026
+  (NVIDIA-NemotronLabs-AI-for-Media-Sports-Tennis, commercial-OK license,
+  needs an 80 GB GPU). A QA model over clips, not a tracker.
 
 Commercial single-camera analogue: SwingVision (iPhone, on-device, fixed
-elevated baseline position, patents describe single-frame CNN candidates plus
-physics-consistent trajectory fitting plus court homography).
+elevated baseline position, patents describe learned 2D-to-3D regression using
+court lines as reference).
 
 ## 8. Shot classification and event detection
 
