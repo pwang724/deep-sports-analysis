@@ -21,6 +21,7 @@ import supervision as sv
 
 from dsa.pose.backends import PoseModels, run_vitpose
 from dsa.pose.skeleton import draw_pose, joints_to_columns
+from dsa.video import H264Writer
 
 SKELETON_COLOR = (255, 80, 200)  # BGR
 
@@ -49,7 +50,7 @@ def track_segment(video: str | Path, start: float, duration: float | None, out_d
     cap.set(cv2.CAP_PROP_POS_FRAMES, f0)
 
     tracker = sv.ByteTrack(frame_rate=fps / cfg.stride)
-    writer = cv2.VideoWriter(str(out_dir / "annotated.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), fps / cfg.stride, size)
+    writer = H264Writer(out_dir / "annotated.mp4", fps / cfg.stride, size)
     rows: list[dict] = []
     timing = {"detect": 0.0, "vitpose": 0.0}
     frames = 0

@@ -1,8 +1,10 @@
-"""Thin ffmpeg wrappers: probe a codec, transcode to H.264, join mp4 segments."""
+"""Thin ffmpeg wrappers: probe a codec, transcode to H.264, write and join H.264 mp4s."""
 from __future__ import annotations
 
 import subprocess
 from pathlib import Path
+
+import numpy as np
 
 # Codecs the OpenCV Linux wheel decodes with its bundled ffmpeg. AV1 is not one of them.
 CV2_DECODABLE = {"h264", "hevc", "mpeg4", "vp9"}
@@ -30,3 +32,28 @@ def concat_videos(videos: list[Path], out: Path) -> None:
                         "-c", "copy", str(out)], check=True)
     finally:
         listing.unlink()
+
+
+class H264Writer:
+    """Write BGR frames to an H.264 mp4 through ffmpeg.
+
+    Replaces cv2.VideoWriter, whose mp4v output is ~4x larger at the same
+    quality. CRF 23 is visually lossless enough for annotated review video.
+    """
+
+    def __init__(self, path: str | Path, fps: float, size: tuple[int, int], crf: int = 23, preset: str = "fast"):
+        w, h = size
+        self.proc = subprocess.Popen(
+            ["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{w}x{h}", "-r", f"{fps:.6f}",
+             "-i", "-", "-c:v", "libx264", "-preset", preset, "-crf", str(crf), "-pix_fmt", "yuv420p",
+             "-movflags", "+faststart", str(path)],
+            stdin=subprocess.PIPE,
+        )
+
+    def write(self, bgr: np.ndarray) -> None:
+        self.proc.stdin.write(np.ascontiguousarray(bgr).tobytes())
+
+    def release(self) -> None:
+        self.proc.stdin.close()
+        if self.proc.wait() != 0:
+            raise RuntimeError("ffmpeg failed while writing video")
