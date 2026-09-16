@@ -4,7 +4,7 @@ The main broadcast camera is fixed behind the baseline, so every rally frame
 looks nearly identical at thumbnail scale. Compare each sampled frame to one
 reference end-on frame; runs of matching frames are rally segments.
 
-    python src/shots.py data/raw/clip.mp4 --ref-time 0 --out output/shots.json
+    python scripts/shots.py data/raw/clip.mp4 --ref-time 0 --out output/shots.json
 """
 from __future__ import annotations
 

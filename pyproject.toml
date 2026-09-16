@@ -1,0 +1,31 @@
+[project]
+name = "dsa"
+version = "0.1.0"
+description = "Deep sports analysis: pose, court and ball tracking from tennis broadcast video."
+requires-python = ">=3.11"
+dependencies = [
+    "torch==2.14.0",
+    "torchvision==0.29.0",
+    "rfdetr==1.10.1",
+    "transformers==5.17.0",
+    "supervision==0.30.3",
+    "opencv-python==5.0.0.93",
+    "pandas==3.0.5",
+    "pyarrow==25.0.1",
+    "numpy==2.4.6",
+    "pillow==12.3.0",
+]
+
+[project.optional-dependencies]
+cloud = ["modal==1.5.5"]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
