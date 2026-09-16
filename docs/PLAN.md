@@ -51,20 +51,23 @@ for handheld (assume a static camera). Manual corner clicks and Hough lines
 
 ## Order of work
 
-1. **Player pose.** Clone the vision-demos structure. Get ViTPose running on a
-   clip through the gateway, render the overlay, dump joints to JSON.
-2. **Court detection + homography.** Fine-tune on TennisCourtDetector with
+1. **Player pose.** Done: RF-DETR Medium boxes, ByteTrack ids, ViTPose joints,
+   on Modal per segment. See [DECISIONS.md](DECISIONS.md) 1-3.
+2. **Who is who.** One VLM call per batch of new tracks names the players and
+   drops everyone else; ViTPose then runs on players only. Decided, not built:
+   [DECISIONS.md](DECISIONS.md) 4. Needed before any per-player analytics.
+3. **Court detection + homography.** Fine-tune on TennisCourtDetector with
    heavy perspective augmentation. Per frame: detect points, drop frames with
    fewer than 4 confident points, track corners with Lucas-Kanade between
    detections, refit the homography when reprojection error grows or a cut is
    detected. Map player feet onto a top-down court. This already gives footwork
    and positioning.
-3. **Ball.** Fine-tune RF-DETR on RacketVision tennis at 1024 px. Measure
+4. **Ball.** Fine-tune RF-DETR on RacketVision tennis at 1024 px. Measure
    ball recall on the held-out split against WASB's published F1 of 95.6. If
    the gap is under ~10 points, keep RF-DETR. If larger, try stacked-frame
    input, then WASB. Either way: stabilize frames with the tracked homography,
    smooth, fill gaps, fit parabolas between bounces.
-4. **Analytics.** Speed, bounce location, contact point, shot classification,
+5. **Analytics.** Speed, bounce location, contact point, shot classification,
    all in court coordinates.
 
 ## Constraints

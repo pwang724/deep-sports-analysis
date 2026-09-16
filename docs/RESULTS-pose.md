@@ -207,9 +207,10 @@ about 1 hour on a rented GPU.
   player over 34 s across 3 segments; SAM 3 video was worse and 14x the cost.
 - **Joints:** ViTPose-Plus-Huge on each tracked box. 0.824 OKS vs 0.773 for
   RF-DETR Keypoint's best mode; the gap is in wrists, elbows and serves.
-- **Open:** which tracks are the players. No single-frame model separates a
-  ball kid from a player (five models, three prompt strategies); it needs a
-  per-track judge with the sport as a string.
+- **Who is who:** a VLM call per batch of new tracks, on a full frame with
+  boxes and track ids drawn. No single-frame detector separates a ball kid
+  from a player (five models, three prompt strategies). Not built yet; see
+  [DECISIONS.md](DECISIONS.md) entry 4.
 
 ## Caveats
 

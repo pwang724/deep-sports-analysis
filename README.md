@@ -1,8 +1,9 @@
 # Deep Sports Analysis
 
 Tennis video analysis from broadcast footage. See [docs/PLAN.md](docs/PLAN.md)
-for the pipeline and [docs/RESULTS-pose.md](docs/RESULTS-pose.md) for what
-the pose backends score.
+for the pipeline, [docs/DECISIONS.md](docs/DECISIONS.md) for the settled
+design choices, and [docs/RESULTS-pose.md](docs/RESULTS-pose.md) for the
+measurements behind them.
 
 ## Layout
 
