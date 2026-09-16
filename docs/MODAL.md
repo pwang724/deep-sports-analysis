@@ -20,6 +20,12 @@ container, so a match processes in minutes.
 
    ViTPose comes from `models/vitpose-plus-huge`; RF-DETR from `~/.roboflow/models`.
 
+3. For the benchmarks, upload the labelled datasets from `data/` (see README):
+
+   ```bash
+   modal run src/dsa/cloud/modal_app.py::datasets
+   ```
+
 ## Track a clip
 
 ```bash
@@ -43,10 +49,22 @@ Merged `joints.parquet` and `summary.json` land in `output/<run-name>/`. The
 annotated video stays on the Volume; the command to fetch it is printed at
 the end.
 
-Pick the GPU with an environment variable, default `L4`:
+GPUs are tried in order until one has capacity, default `L4,A10,L40S,A100-40GB`.
+Override with a comma-separated list:
 
 ```bash
-DSA_GPU=L40S modal run src/dsa/cloud/modal_app.py::run --video ...
+DSA_GPU=L40S,A100-40GB modal run src/dsa/cloud/modal_app.py::run --video ...
+```
+
+## Benchmarks
+
+Each is its own Modal app and prints a table; results are recorded in
+[RESULTS-pose.md](RESULTS-pose.md).
+
+```bash
+modal run src/dsa/cloud/bench_detectors.py   # person detectors vs labelled boxes
+modal run src/dsa/cloud/bench_tracking.py    # detector + ByteTrack on a clip: coverage, id switches, cost
+modal run src/dsa/cloud/eval_pose.py         # pose backends vs labelled joints
 ```
 
 ## How it works

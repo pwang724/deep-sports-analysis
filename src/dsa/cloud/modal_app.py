@@ -2,13 +2,16 @@
 
 Everything persistent lives in one Modal Volume:
 
-    /vol/models/vitpose-plus-huge   ViTPose weights (uploaded once)
-    /vol/models/rfdetr              RF-DETR weights (downloaded once, via RF_HOME)
+    /vol/models/vitpose-plus-huge   ViTPose weights (uploaded once by `setup`)
+    /vol/models/rfdetr              RF-DETR weights (downloaded on first use, via RF_HOME)
+    /vol/models/yolo                YOLO weights, only if that detector is used
     /vol/videos/<name>.mp4          source clips (plus <name>.h264.mp4 when transcoded)
+    /vol/datasets/<name>/           labelled data for the benchmarks
     /vol/runs/<run>/segNNNN/        per-segment outputs
     /vol/runs/<run>/                merged joints.parquet, summary.json, annotated.mp4
 
-First time:   modal run src/dsa/cloud/modal_app.py::setup
+First time:   modal run src/dsa/cloud/modal_app.py::setup       (model weights)
+              modal run src/dsa/cloud/modal_app.py::datasets    (labelled data, for the benchmarks)
 Track a clip: modal run src/dsa/cloud/modal_app.py::run --video data/raw/clip.mp4 --start 100 --duration 60
 """
 
@@ -150,6 +153,22 @@ def setup(vitpose: str = "models/vitpose-plus-huge", rfdetr_cache: str = "~/.rob
         else:
             print(f"uploading {pth.name}...")
             _upload(pth, remote)
+    print("done")
+
+
+@app.local_entrypoint()
+def datasets(root: str = "data"):
+    """Upload the labelled datasets used by the benchmarks. Safe to rerun; existing ones are skipped."""
+    for name, subdir in (("tennis_segmentation", ""), ("tennis_player_actions", "Tennis Player Actions Dataset for Human Pose Estimation")):
+        local = REPO / root / name / subdir
+        remote = VOL / "datasets" / name
+        if not local.exists():
+            print(f"{local} not found locally, skipping")
+        elif _volume_has(remote):
+            print(f"{remote} already on volume")
+        else:
+            print(f"uploading {name}...")
+            _upload(local, remote)
     print("done")
 
 
