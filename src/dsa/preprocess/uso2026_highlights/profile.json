@@ -1,0 +1,75 @@
+{
+  "description": "High end-on aerial court view only. References are timestamps in uso2026_final_highlights.mp4; choose a new set for other broadcasts. View selection alone does not distinguish live play from replays.",
+  "source": {
+    "filename": "uso2026_final_highlights.mp4",
+    "sha256": "8bef6a5f9329b120007b2b09d84db55d53a354167de2b68f647c9b4cdaa971ca"
+  },
+  "sample_fps": 2.0,
+  "cuts": {
+    "adaptive_threshold": 2.0,
+    "min_content_val": 5.0
+  },
+  "margin": 0.04,
+  "references": [
+    {
+      "label": "keep",
+      "time": 0,
+      "note": "high end-on court"
+    },
+    {
+      "label": "keep",
+      "time": 300,
+      "note": "wider high court"
+    },
+    {
+      "label": "keep",
+      "time": 600,
+      "note": "high court, later lighting"
+    },
+    {
+      "label": "discard",
+      "time": 60,
+      "note": "low end-on court"
+    },
+    {
+      "label": "discard",
+      "time": 240,
+      "note": "court-level side view"
+    },
+    {
+      "label": "discard",
+      "time": 320,
+      "note": "player close-up"
+    },
+    {
+      "label": "discard",
+      "time": 28,
+      "note": "zoomed court replay"
+    },
+    {
+      "label": "discard",
+      "time": 31,
+      "note": "net replay"
+    },
+    {
+      "label": "discard",
+      "time": 272,
+      "note": "ball and court detail"
+    },
+    {
+      "label": "discard",
+      "time": 477,
+      "note": "stadium overview"
+    },
+    {
+      "label": "discard",
+      "time": 110,
+      "note": "crowd"
+    },
+    {
+      "label": "discard",
+      "time": 731,
+      "note": "outro graphic"
+    }
+  ]
+}

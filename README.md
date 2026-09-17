@@ -20,6 +20,10 @@ src/dsa/            importable package
     eval_pose.py    pose scoring against labelled joints
   data/             dataset loaders (TennisSegmentation)
   video.py          ffmpeg helpers
+  preprocess/
+    uso2026_highlights/  this video's cleanup code and settings
+    media.py            shared video I/O
+    manifest.py         retained source intervals consumed by tracking
   cloud/
     modal_app.py        run the tracker on Modal GPUs (docs/MODAL.md)
     bench_detectors.py  detector benchmark on labelled frames
@@ -42,6 +46,11 @@ download themselves on first use. For the benchmarks, put TennisSegmentation
 `data/tennis_player_actions`; see docs/DATASETS.md.
 
 ## Use
+
+Each video owns its preprocessing code: cut away footage that is not useful
+before running analysis. See [preprocessing](docs/PREPROCESSING.md) and the
+[USO highlights recipe](src/dsa/preprocess/uso2026_highlights/README.md). Future joint model
+training goals are recorded in [TRAINING-GOALS.md](docs/TRAINING-GOALS.md).
 
 ```bash
 python scripts/joints.py data/raw/clip.mp4 --start 60 --duration 20 --stride 2   # local (MPS/CPU)

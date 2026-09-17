@@ -16,8 +16,10 @@ primary detector (slower, looser boxes, weaker on the small far player).
 ## 2. Identity within a shot: ByteTrack (2026-09-16)
 
 Motion-and-overlap matching on the detector's boxes. No appearance model.
-Identity resets at shot cuts and at segment boundaries; that is accepted, see
-decision 4.
+The default runner resets identity at fixed segment boundaries. With a view
+manifest (`--shots`), it instead starts a fresh tracker for each kept camera
+shot/view interval; detected cuts are never merged. See [PREPROCESSING.md](PREPROCESSING.md).
+Neither mode guarantees identity purity within a shot; see decision 4.
 
 Rejected: SAM 3 video mode as detector plus tracker. It lost the far player in
 two frames of three, switched identity 3-5x more often, and cost 14x.
@@ -58,3 +60,16 @@ consistency check (not needed; the VLM answer is taken as final).
 
 Status: not built yet. Nothing downstream needs it until per-player questions
 are asked of the joints table, which today holds everyone.
+
+## 5. Preprocessing belongs to each video (2026-09-17)
+
+Its job is to remove unwanted footage before analysis. Each video has a silo
+containing its cleanup code, settings, and instructions. A new video may need
+an entirely different method; it does not inherit the previous video's rules.
+Only video I/O and the retained-interval manifest are shared with downstream
+tracking. See [PREPROCESSING.md](PREPROCESSING.md).
+
+The USO highlights silo currently uses DINOv2 keep/discard references, camera
+cuts and observed changes of view. That method and its calibration belong to
+this clip alone. Kept intervals retain source timestamps and camera boundaries.
+The future learned model goal is in [TRAINING-GOALS.md](TRAINING-GOALS.md).

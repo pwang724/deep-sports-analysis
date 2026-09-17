@@ -76,7 +76,8 @@ class PoseTracker:
         seg = Segment(**segment)
         out_dir = RUNS_DIR / run / seg.name
         summary = track_segment(VIDEOS_DIR / video_name, seg.start, seg.duration, out_dir,
-                                self.models, TrackConfig(**config), seg.track_id_offset)
+                                self.models, TrackConfig(**config), seg.track_id_offset,
+                                (seg.start_frame, seg.end_frame) if seg.start_frame is not None else None)
         volume.commit()
         return summary
 
@@ -175,21 +176,25 @@ def datasets(root: str = "data"):
 @app.local_entrypoint()
 def run(video: str, start: float = 0.0, duration: float = 30.0, segment_len: float = 15.0,
         detector: str = "rfdetr", imgsz: int = 1152, stride: int = 2, threshold: float = 0.4,
-        run_name: str | None = None, out: str = "output"):
+        run_name: str | None = None, out: str = "output", shots: str = ""):
     """Track players over [start, start + duration), fanned out across GPUs by segment.
 
     The video is uploaded to the volume if missing. Merged joints.parquet and
     summary.json are downloaded into `<out>/<run_name>/`; the annotated video
     stays on the volume (see the printed command to fetch it).
+    With --shots, use every kept shot in the manifest instead of start/duration/
+    segment_len. Each shot gets a fresh tracker and retains source timestamps.
     """
     from dsa.pose.detectors import DETECTORS
-    from dsa.pose.segments import plan_segments
+    from dsa.pose.segments import plan_kept_shots, plan_segments
     from dsa.pose.tracking import TrackConfig
 
     if detector not in DETECTORS:
         raise SystemExit(f"unknown detector {detector!r}; choose from {sorted(DETECTORS)}")
 
     local_video = Path(video)
+    manifest = json.loads(Path(shots).read_text()) if shots else None
+    segments = plan_kept_shots(manifest, local_video) if manifest else plan_segments(start, duration, segment_len)
     name = local_video.name
     if not _volume_has(VIDEOS_DIR / name):
         print(f"uploading {name}...")
@@ -197,10 +202,10 @@ def run(video: str, start: float = 0.0, duration: float = 30.0, segment_len: flo
 
     name = prepare_video.remote(name)
 
-    run_name = run_name or f"{local_video.stem}_{int(start)}_{int(duration)}"
+    run_name = run_name or (f"{local_video.stem}_kept" if manifest else f"{local_video.stem}_{int(start)}_{int(duration)}")
     cfg = TrackConfig(stride=stride, threshold=threshold)
-    segments = plan_segments(start, duration, segment_len)
-    print(f"run {run_name}: {len(segments)} segments of {segment_len}s on {GPU[0]} (fallbacks {GPU[1:]}), detector {detector}@{imgsz}")
+    print(f"run {run_name}: {len(segments)} {'kept shots' if manifest else 'segments'} on {GPU[0]} "
+          f"(fallbacks {GPU[1:]}), detector {detector}@{imgsz}")
 
     tracker = PoseTracker(detector=detector, imgsz=imgsz)
     for s in tracker.track.map([name] * len(segments), [run_name] * len(segments),

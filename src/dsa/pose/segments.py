@@ -11,6 +11,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from dsa.preprocess.manifest import validate_manifest
+
 # Track IDs from segment i are offset by i * TRACK_ID_STRIDE so they never collide.
 TRACK_ID_STRIDE = 100_000
 
@@ -20,6 +22,8 @@ class Segment:
     index: int
     start: float
     duration: float
+    start_frame: int | None = None
+    end_frame: int | None = None
 
     @property
     def name(self) -> str:
@@ -42,6 +46,20 @@ def plan_segments(start: float, duration: float, segment_len: float) -> list[Seg
         segments.append(Segment(i, round(t, 3), round(length, 3)))
         t += length
         i += 1
+    return segments
+
+
+def plan_kept_shots(manifest: dict, video: str | Path) -> list[Segment]:
+    """One fresh tracker per kept camera shot; preserve exact source frame bounds."""
+    validate_manifest(manifest, video)
+    fps = manifest["fps"]
+    segments = []
+    for shot in manifest["shots"]:
+        start, end = shot["start_frame"], shot["end_frame"]
+        if shot["label"] == "keep":
+            segments.append(Segment(len(segments), start / fps, (end - start) / fps, start, end))
+    if not segments:
+        raise ValueError("Manifest has no kept shots; review the references and shot decisions")
     return segments
 
 

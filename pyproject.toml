@@ -18,6 +18,7 @@ dependencies = [
 
 [project.optional-dependencies]
 cloud = ["modal==1.5.5"]
+preprocess = ["scenedetect==0.7.1"]
 dev = ["pytest>=8"]
 
 [build-system]
@@ -26,6 +27,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"dsa.preprocess.uso2026_highlights" = ["profile.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

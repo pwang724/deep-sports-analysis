@@ -3,7 +3,7 @@ import json
 import pandas as pd
 import pytest
 
-from dsa.pose.segments import TRACK_ID_STRIDE, merge_tables, plan_segments
+from dsa.pose.segments import TRACK_ID_STRIDE, merge_tables, plan_kept_shots, plan_segments
 
 
 def test_plan_segments_covers_range_exactly():
@@ -17,6 +17,30 @@ def test_plan_segments_covers_range_exactly():
 def test_plan_segments_rejects_bad_input():
     with pytest.raises(ValueError):
         plan_segments(0, 0, 10)
+
+
+def test_kept_shots_preserve_cuts_gaps_and_exact_frames():
+    manifest = {"video": "/source/match.mp4", "fps": 29.97, "frames": 120, "shots": [
+        {"start_frame": 0, "end_frame": 30, "label": "keep"},
+        {"start_frame": 30, "end_frame": 60, "label": "keep"},
+        {"start_frame": 60, "end_frame": 90, "label": "review"},
+        {"start_frame": 90, "end_frame": 120, "label": "keep"},
+    ]}
+    segs = plan_kept_shots(manifest, "match.mp4")
+    assert [(s.start_frame, s.end_frame) for s in segs] == [(0, 30), (30, 60), (90, 120)]
+    assert segs[-1].start == 90 / 29.97
+    assert [s.track_id_offset for s in segs] == [0, 100000, 200000]
+    with pytest.raises(ValueError, match="different source"):
+        plan_kept_shots(manifest, "other.mp4")
+    manifest["shots"][1]["start_frame"] = 29
+    with pytest.raises(ValueError, match="non-overlapping"):
+        plan_kept_shots(manifest, "match.mp4")
+
+
+def test_kept_shots_reject_empty_selection():
+    with pytest.raises(ValueError, match="no kept shots"):
+        plan_kept_shots({"video": "v.mp4", "fps": 30, "frames": 10, "shots": [
+            {"start_frame": 0, "end_frame": 10, "label": "discard"}]}, "v.mp4")
 
 
 def _write_segment(d, start, frames, rows):

@@ -33,11 +33,13 @@ class TrackConfig:
 
 
 def track_segment(video: str | Path, start: float, duration: float | None, out_dir: str | Path,
-                  models: PoseModels, cfg: TrackConfig, track_id_offset: int = 0) -> dict:
+                  models: PoseModels, cfg: TrackConfig, track_id_offset: int = 0,
+                  frame_range: tuple[int, int] | None = None) -> dict:
     """Track players from `start` for `duration` seconds and write outputs to `out_dir`.
 
     `track_id_offset` keeps ByteTrack IDs unique when segments of one video
     are processed independently. Returns the summary dict.
+    `frame_range` overrides rounded time bounds for frame-exact camera shots.
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -47,6 +49,8 @@ def track_segment(video: str | Path, start: float, duration: float | None, out_d
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     f0 = int(start * fps)
     f1 = int((start + duration) * fps) if duration else int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    if frame_range is not None:
+        f0, f1 = frame_range
     cap.set(cv2.CAP_PROP_POS_FRAMES, f0)
 
     tracker = sv.ByteTrack(frame_rate=fps / cfg.stride)
@@ -98,6 +102,7 @@ def track_segment(video: str | Path, start: float, duration: float | None, out_d
         "video": str(video), "start": start, "duration": duration, "fps": fps,
         "detector": models.detector.name, "config": asdict(cfg),
         "frames_processed": frames, "rows": len(df), "tracks": int(df.track_id.nunique()) if len(df) else 0,
+        "start_frame": f0, "end_frame": f1,
         "sec_per_frame": {k: v / max(frames, 1) for k, v in timing.items()},
     }
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2))
