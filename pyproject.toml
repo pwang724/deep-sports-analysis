@@ -18,7 +18,7 @@ dependencies = [
 
 [project.optional-dependencies]
 cloud = ["modal==1.5.5"]
-preprocess = ["scenedetect==0.7.1"]
+preprocess = ["scenedetect==0.7.1", "scipy>=1.14"]
 dev = ["pytest>=8"]
 
 [build-system]
@@ -30,6 +30,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "dsa.preprocess.uso2026_highlights" = ["profile.json"]
+"dsa.preprocess.desktop_tennis" = ["review.html", "profiles/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

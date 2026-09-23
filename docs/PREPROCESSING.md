@@ -20,6 +20,13 @@ create another sibling directory with its own code, configuration and command.
 The current implementation is described in the
 [USO highlights recipe](../src/dsa/preprocess/uso2026_highlights/README.md).
 
+The [desktop tennis recipe](../src/dsa/preprocess/desktop_tennis/README.md) is
+separate: it normalizes Peter's Richard/Dylan phone recordings and exports
+unscored activity from source-matched cut lists, independently of point labels.
+Its audio-assisted proposals require visual review. `play_shots.json` supplies
+the resulting activity windows to tracking. A separate optional workflow adds
+eleven/match scoring later; its point annotations remain incomplete drafts.
+
 ## Output consumed by analysis
 
 `shots.json` identifies the original `video`, `fps`, `frames`, and an ordered

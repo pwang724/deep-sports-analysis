@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tennis · point review</title>
+<style>
+:root{color-scheme:dark;font:15px system-ui;background:#101820;color:#e8edf1}*{box-sizing:border-box}body{margin:0;padding:24px;max-width:1600px;margin:auto}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}h1{font-size:24px;margin:0}h2{font-size:17px;margin:0 0 12px}p{color:#a7b4c1;line-height:1.5}.tag{color:#c2eb78;font-size:12px;letter-spacing:2px;margin-bottom:6px}main{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:20px}.stage{position:relative;background:black;border-radius:10px;overflow:hidden}video{width:100%;display:block}.board{position:absolute;top:16px;left:16px;background:#101820ed;border-radius:8px;padding:10px 14px;pointer-events:none;font-variant-numeric:tabular-nums;min-width:180px}.board small{display:block;color:#c2eb78;margin-bottom:6px}.board .row{display:flex;justify-content:space-between;gap:24px;margin:4px 0}.muted{color:#a7b4c1;font-size:13px}.panel{background:#19232d;padding:18px;border-radius:10px;margin-bottom:16px}.controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}button,select,input{font:inherit;color:inherit;background:#253442;border:1px solid #405362;border-radius:6px;padding:8px}button{cursor:pointer}button:hover{border-color:#c2eb78}.primary{background:#c2eb78;color:#142014;border-color:#c2eb78}input[type=number]{width:110px}label{display:block;margin:10px 0}label input[type=checkbox]{margin-right:7px}select{max-width:100%}#clock{font-variant-numeric:tabular-nums;font-size:19px}#message{min-height:24px;color:#c2eb78;margin-top:8px}.error{color:#ff9a88!important}.point{border-top:1px solid #354552;padding:10px 0}.point button{padding:4px 8px}.point .clips{font-size:12px;color:#a7b4c1;margin-top:6px}#points{max-height:420px;overflow:auto}kbd{font:12px monospace;background:#253442;padding:2px 5px;border-radius:3px}#pending{color:#c2eb78}details{margin-top:12px}summary{cursor:pointer;color:#a7b4c1}#pointEditor input{width:85px;font-size:13px}#pointEditor select{font-size:13px;padding:4px}#pointEditor .editclip{display:flex;gap:5px;align-items:center;margin:8px 0}@media(max-width:1000px){main{grid-template-columns:1fr}.board{font-size:12px}}
+</style>
+<header><div><div class="tag">TENNIS / POINT REVIEW</div><h1 id="title">Loading…</h1></div><span id="saveState" class="muted">Local point log</span></header>
+<main><section>
+<div class="stage"><video id="video" controls preload="metadata" src="/video"></video><div class="board" id="board"></div></div>
+<div class="controls"><span id="clock">00:00.00</span><button id="back">−5s</button><button id="frameBack">−1 frame</button><button id="play">Play / pause</button><button id="frameNext">+1 frame</button><button id="next">+5s</button><select id="speed" aria-label="Playback speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option><option value="3">3×</option></select></div>
+<div class="panel"><h2>Keep the point. Cut the waiting.</h2><p>Mark the start just before a feed or struck serve. Keep missed first serves. Close a clip before a bad toss or other dead time, then resume before the next struck serve. Award the point only after the rally or double fault ends.</p>
+<div class="controls"><button id="startClip" class="primary">Start / resume clip [I]</button><button id="fault">Keep first-serve miss [F]</button><button id="pauseClip">End clip before dead time [O]</button></div>
+<div class="controls"><button id="winner0">Peter wins [1]</button><button id="winner1">Opponent wins [2]</button><button id="unknown">Outcome unclear [U]</button><button id="cancel">Cancel pending point</button></div>
+<div id="pending">No point in progress.</div><div id="message" role="status"></div>
+<p class="muted">Shortcuts work outside form fields. A point-ending click retains another 0.7 seconds to show the outcome. Unverified scores display “?”; the editor never infers a winner from a cut.</p></div>
+<div class="panel"><h2>Recorded points</h2><div id="points"></div><div id="pointEditor"></div></div>
+</section><aside>
+<div class="panel"><h2>Game or match</h2><select id="segment" aria-label="Choose game or match"></select><div class="controls"><button id="addEleven">+ Eleven</button><button id="addMatch">+ Match</button></div>
+<label>Label <input id="segmentId" aria-label="Segment label"></label><label>Type <select id="kind"><option value="eleven">Game to 11</option><option value="match">Match play</option></select></label>
+<label>Start (seconds) <input id="segStart" type="number" step="0.033333"><button id="setStart">Use now</button></label><label>End (seconds) <input id="segEnd" type="number" step="0.033333"><button id="setEnd">Use now</button></label>
+<button id="applySegment">Save boundaries</button> <button id="deleteSegment">Delete segment</button><p id="notes" class="muted"></p>
+<label><input type="checkbox" id="initialKnown">I verified this starts at 0–0</label><label><input type="checkbox" id="coverage">All points and cuts in this segment checked</label>
+<div class="controls"><button id="verify">Mark segment verified</button><button id="unverify">Reopen as draft</button></div><p id="segmentStatus" class="muted"></p>
+<details><summary>Starting score, if recording begins mid-game</summary><p class="muted">Point counts use 0 / 1 / 2 / 3 for love / 15 / 30 / 40; 4–3 means advantage. For elevens use actual points.</p><label>Points <input id="initPoints" value="0,0"></label><label>Games <input id="initGames" value="0,0"></label><label>Sets <input id="initSets" value="0,0"></label><button id="saveInitial">Save verified starting score</button></details>
+</div><div class="panel"><h2>Review notes</h2><p id="identities"></p><p>Eleven: first to 11, win by two.<br>Match: advantage scoring; a 7-point tiebreak at 6–6.</p><p class="muted">The tiebreak convention can be changed in the scoring code if your match used different rules. Keep a first-serve miss and its second serve inside the same point.</p><button id="download">Download point log</button></div>
+</aside></main>
+<script>
+const $=id=>document.getElementById(id), video=$('video');
+let log, source, scores={}, selected=0, activeStart=null, pending=[], editing=null;
+const fmt=t=>`${String(Math.floor(t/60)).padStart(2,'0')}:${(t%60).toFixed(2).padStart(5,'0')}`;
+const now=()=>Math.round(video.currentTime*source.fps)/source.fps;
+const seg=()=>log.segments[selected];
+function message(text,error=false){$('message').textContent=text;$('message').className=error?'error':'';}
+async function save(){
+ const r=await fetch('/api/log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(log)});
+ const data=await r.json();if(!r.ok){message(data.error,true);$('saveState').textContent='Changes not saved';return false;}
+ scores=data.scores;$('saveState').textContent='Saved locally';message('Saved.');drawPoints();drawBoard();return true;
+}
+function drawSegments(){
+ $('segment').replaceChildren(...log.segments.map((s,i)=>new Option(`${s.id} · ${s.status}`,i)));
+ $('segment').value=selected;const s=seg();for(const id of ['applySegment','deleteSegment','initialKnown','coverage','verify','unverify','saveInitial','setStart','setEnd'])$(id).disabled=!s;if(!s){$('board').replaceChildren();$('points').textContent='Add a game or match to begin.';$('segmentStatus').textContent='No segment selected';return;}
+ $('segmentId').value=s.id;$('kind').value=s.kind;$('segStart').value=s.start;$('segEnd').value=s.end;
+ $('initialKnown').checked=!!s.initial_score?.verified;$('coverage').checked=!!s.coverage_verified;
+ $('segmentStatus').textContent=`Status: ${s.status}`;$('notes').textContent=s.notes||'';
+ ['points','games','sets'].forEach(k=>$('init'+k[0].toUpperCase()+k.slice(1)).value=(s.initial_score?.[k]||[0,0]).join(','));
+ drawPoints();drawBoard();
+}
+function drawPoints(){
+ $('points').replaceChildren();if(!seg())return;
+ seg().points.forEach((p,i)=>{const row=document.createElement('div');row.className='point';
+ const b=document.createElement('button');b.textContent=`${i+1} · ${fmt(p.clips[0].start)}`;b.onclick=()=>{video.currentTime=p.clips[0].start;video.scrollIntoView({block:'start',behavior:'smooth'});};
+ const text=document.createElement('span');text.textContent=`  ${p.winner===null?'Unknown outcome':log.players[p.winner]+' wins'} · ${p.status} `;
+ const edit=document.createElement('button');edit.textContent='Edit';edit.onclick=()=>editPoint(i);
+ const detail=document.createElement('div');detail.className='clips';detail.textContent=p.clips.map(c=>`${fmt(c.start)}–${fmt(c.end)} ${c.role.replaceAll('_',' ')}`).join(' / ');
+ row.append(b,text,edit,detail);$('points').append(row);
+ });
+ if(!seg().points.length)$('points').textContent='No points recorded yet.';
+}
+function drawBoard(){
+ const s=seg();if(!s)return;$('board').replaceChildren();
+ const label=document.createElement('small');label.textContent=`${s.kind==='match'?'MATCH PLAY':s.id.toUpperCase()}${s.status==='draft'?' · DRAFT':''}`;$('board').append(label);
+ const timeline=scores[s.id]||[];const state=timeline.filter(x=>x.time<=video.currentTime).at(-1)||{points:['?','?'],games:['?','?'],sets:['?','?']};
+ log.players.forEach((p,i)=>{const row=document.createElement('div');row.className='row';const name=document.createElement('span');name.textContent=p;const val=document.createElement('span');val.textContent=s.kind==='match'?`${state.sets[i]} sets · ${state.games[i]} games · ${state.points[i]}`:state.points[i];row.append(name,val);$('board').append(row);});
+}
+function pendingText(){$('pending').textContent=`${pending.length} retained clip(s)${activeStart===null?'':` · recording from ${fmt(activeStart)}`}`;}
+function startClip(){if(!seg())return message('Add a game or match first.',true);if(now()<seg().start||now()>=seg().end)return message('Seek inside the selected segment.',true);if(activeStart!==null)return message('A clip is already open.',true);activeStart=now();pendingText();}
+function closeClip(role){if(activeStart===null||now()<=activeStart){message('Mark a clip start first.',true);return false;}pending.push({start:activeStart,end:now(),role});activeStart=null;pendingText();return true;}
+async function award(winner){
+ if(activeStart===null)return message('Start the final rally/serve clip before awarding its point.',true);
+ const t=now(),tail=Math.min(seg().end,Math.round((t+.7)*source.fps)/source.fps);
+ if(t<=activeStart)return message('Point end must follow clip start.',true);
+ pending.push({start:activeStart,end:tail,role:'rally'});
+ seg().points.push({time:t,winner,status:winner===null?'draft':'verified',clips:pending,notes:''});
+ seg().points.sort((a,b)=>a.clips[0].start-b.clips[0].start);seg().status='draft';seg().coverage_verified=false;
+ activeStart=null;pending=[];pendingText();await save();drawSegments();
+}
+function editPoint(i){
+ editing=i;const p=seg().points[i], box=$('pointEditor');box.replaceChildren();
+ const heading=document.createElement('h2');heading.textContent=`Edit point ${i+1}`;box.append(heading);
+ const inputs=[];function addClip(c){const row=document.createElement('div');row.className='editclip';
+ const a=document.createElement('input'),b=document.createElement('input');[a,b].forEach(x=>{x.type='number';x.step=1/source.fps;});a.value=c.start;b.value=c.end;a.setAttribute('aria-label','Clip start');b.setAttribute('aria-label','Clip end');
+ const role=document.createElement('select');['rally','first_serve_fault','double_fault'].forEach(r=>role.add(new Option(r,r)));role.value=c.role;const remove=document.createElement('button');remove.textContent='×';remove.setAttribute('aria-label','Remove retained clip');remove.onclick=()=>row.remove();row.append(a,b,role,remove);box.append(row);inputs.push({a,b,role,row});}p.clips.forEach(addClip);
+ const resultTime=document.createElement('input');resultTime.type='number';resultTime.step=1/source.fps;resultTime.value=p.time;resultTime.setAttribute('aria-label','Point result time');
+ const winner=document.createElement('select');winner.add(new Option('Unknown',''));log.players.forEach((n,j)=>winner.add(new Option(n,j)));winner.value=p.winner===null?'':p.winner;
+ const saveButton=document.createElement('button');saveButton.textContent='Save point';saveButton.onclick=async()=>{p.clips=inputs.filter(x=>x.row.isConnected).map(x=>({start:+x.a.value,end:+x.b.value,role:x.role.value}));p.time=+resultTime.value;p.winner=winner.value===''?null:+winner.value;p.status=p.winner===null?'draft':'verified';seg().status='draft';if(await save())box.replaceChildren();drawSegments();};
+ const remove=document.createElement('button');remove.textContent='Delete point';remove.onclick=async()=>{seg().points.splice(i,1);seg().status='draft';seg().coverage_verified=false;await save();box.replaceChildren();drawSegments();};
+ const addButton=document.createElement('button');addButton.textContent='Add retained clip';addButton.onclick=()=>addClip({start:now(),end:now()+1,role:'rally'});box.append(addButton,' Result time: ',resultTime,winner,saveButton,remove);
+}
+$('startClip').onclick=startClip;$('fault').onclick=()=>closeClip('first_serve_fault');$('pauseClip').onclick=()=>closeClip('rally');
+$('winner0').onclick=()=>award(0);$('winner1').onclick=()=>award(1);$('unknown').onclick=()=>award(null);
+$('cancel').onclick=()=>{activeStart=null;pending=[];pendingText();};
+$('play').onclick=()=>video.paused?video.play():video.pause();$('back').onclick=()=>video.currentTime=Math.max(0,video.currentTime-5);$('next').onclick=()=>video.currentTime+=5;
+$('frameBack').onclick=()=>{video.pause();video.currentTime=Math.max(0,now()-1/source.fps);};$('frameNext').onclick=()=>{video.pause();video.currentTime=now()+1/source.fps;};
+$('speed').onchange=()=>video.playbackRate=+$('speed').value;
+$('segment').onchange=()=>{selected=+$('segment').value;activeStart=null;pending=[];pendingText();drawSegments();video.currentTime=seg().start;};
+async function add(kind){const start=now();log.segments.push({id:kind==='eleven'?`eleven_${log.segments.filter(s=>s.kind==='eleven').length+1}`:`match_${log.segments.filter(s=>s.kind==='match').length+1}`,kind,start,end:Math.min(start+60,source.frames/source.fps),status:'draft',coverage_verified:false,initial_score:{points:[0,0],games:[0,0],sets:[0,0],verified:false},points:[]});log.segments.sort((a,b)=>a.start-b.start);selected=log.segments.findIndex(s=>s.start===start);drawSegments();message('Set this segment’s boundaries, then save.');}
+$('addEleven').onclick=()=>add('eleven');$('addMatch').onclick=()=>add('match');$('setStart').onclick=()=>$('segStart').value=now();$('setEnd').onclick=()=>$('segEnd').value=now();
+$('applySegment').onclick=async()=>{Object.assign(seg(),{id:$('segmentId').value,kind:$('kind').value,start:+$('segStart').value,end:+$('segEnd').value,status:'draft'});await save();drawSegments();};
+$('deleteSegment').onclick=async()=>{log.segments.splice(selected,1);selected=Math.max(0,selected-1);activeStart=null;pending=[];pendingText();await save();drawSegments();};
+$('initialKnown').onchange=async()=>{seg().initial_score={points:[0,0],games:[0,0],sets:[0,0],verified:$('initialKnown').checked};seg().status='draft';await save();drawSegments();};
+$('coverage').onchange=async()=>{seg().coverage_verified=$('coverage').checked;seg().status='draft';await save();drawSegments();};
+$('verify').onclick=async()=>{seg().status='verified';if(!await save())seg().status='draft';drawSegments();};$('unverify').onclick=async()=>{seg().status='draft';await save();drawSegments();};
+$('saveInitial').onclick=async()=>{const s={verified:true};for(const k of ['points','games','sets'])s[k]=$('init'+k[0].toUpperCase()+k.slice(1)).value.split(',').map(Number);seg().initial_score=s;seg().status='draft';await save();drawSegments();};
+$('download').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(log,null,2)],{type:'application/json'}));a.download='annotations.json';a.click();URL.revokeObjectURL(a.href);};
+video.ontimeupdate=()=>{$('clock').textContent=fmt(video.currentTime);drawBoard();};
+document.onkeydown=e=>{if(['INPUT','SELECT','TEXTAREA','BUTTON'].includes(e.target.tagName))return;const actions={i:startClip,f:()=>closeClip('first_serve_fault'),o:()=>closeClip('rally'),'1':()=>award(0),'2':()=>award(1),u:()=>award(null),' ':()=>$('play').click()};if(actions[e.key.toLowerCase()]){e.preventDefault();actions[e.key.toLowerCase()]();}};
+fetch('/api/log').then(r=>r.json()).then(d=>{log=d.log;source=d.source;scores=d.scores;$('title').textContent=log.players.join(' vs ');$('winner0').textContent=`${log.players[0]} wins [1]`;$('winner1').textContent=`${log.players[1]} wins [2]`;$('identities').textContent=Object.entries(log.identities||{}).map(([k,v])=>`${k}: ${v}`).join(' ');drawSegments();}).catch(e=>message(e.message,true));
+</script>
+</html>

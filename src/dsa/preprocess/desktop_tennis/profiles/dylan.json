@@ -1,0 +1,119 @@
+{
+  "source_filename": "peter_dylan_202609.MOV",
+  "source_sha256": "e4bae27143fca10e2300dd6a40e907b1184df290ea544d8795fb72d8cca896bd",
+  "annotation_status": "draft, incomplete; never treat as finished scoring",
+  "log": {
+    "version": 1,
+    "source_sha256": "e4bae27143fca10e2300dd6a40e907b1184df290ea544d8795fb72d8cca896bd",
+    "players": [
+      "Peter",
+      "Dylan"
+    ],
+    "identities": {
+      "Dylan": "Black shirt and cap (confirmed by user)."
+    },
+    "rules": {
+      "eleven": "first to 11, win by two",
+      "match": "standard advantage; default set tiebreak at 6-6"
+    },
+    "editing": "Retain point windows only; preserve missed first serves in the same point. Remove caught/aborted tosses, ball collection and dead time using separate retained clips.",
+    "segments": [
+      {
+        "id": "match",
+        "kind": "match",
+        "start": 30,
+        "end": 3850,
+        "status": "draft",
+        "coverage_verified": false,
+        "initial_score": {
+          "points": [
+            0,
+            0
+          ],
+          "games": [
+            0,
+            0
+          ],
+          "sets": [
+            0,
+            0
+          ],
+          "verified": false
+        },
+        "notes": "Served play begins near 00:38. Initial five point windows inspected; outcomes and the remaining match still need review. No elevens identified in the inspected opening; awaiting clarification.",
+        "points": [
+          {
+            "time": 44.0,
+            "winner": null,
+            "status": "draft",
+            "clips": [
+              {
+                "start": 37.1,
+                "end": 45.0,
+                "role": "rally"
+              }
+            ],
+            "notes": "Visual inspection at 1 fps with focused 4 fps checks. Retained window is a draft; winner unverified. Caught toss around 00:34 excluded; struck serve begins around 00:38."
+          },
+          {
+            "time": 75.2,
+            "winner": null,
+            "status": "draft",
+            "clips": [
+              {
+                "start": 63.8,
+                "end": 76,
+                "role": "rally"
+              }
+            ],
+            "notes": "Visual inspection at 1 fps with focused 4 fps checks. Retained window is a draft; winner unverified. Caught toss around 01:00 excluded; struck serve around 01:05."
+          },
+          {
+            "time": 93.1,
+            "winner": null,
+            "status": "draft",
+            "clips": [
+              {
+                "start": 86.9,
+                "end": 94,
+                "role": "rally"
+              }
+            ],
+            "notes": "Visual inspection at 1 fps with focused 4 fps checks. Retained window is a draft; winner unverified."
+          },
+          {
+            "time": 118.7,
+            "winner": null,
+            "status": "draft",
+            "clips": [
+              {
+                "start": 115.5,
+                "end": 119.5,
+                "role": "rally"
+              }
+            ],
+            "notes": "Visual inspection at 1 fps with focused 4 fps checks. Retained window is a draft; winner unverified."
+          },
+          {
+            "time": 153.6,
+            "winner": null,
+            "status": "draft",
+            "clips": [
+              {
+                "start": 130.5,
+                "end": 134.2,
+                "role": "first_serve_fault"
+              },
+              {
+                "start": 141,
+                "end": 154.4,
+                "role": "rally"
+              }
+            ],
+            "notes": "Visual inspection at 1 fps with focused 4 fps checks. Retained window is a draft; winner unverified."
+          }
+        ]
+      }
+    ]
+  }
+}

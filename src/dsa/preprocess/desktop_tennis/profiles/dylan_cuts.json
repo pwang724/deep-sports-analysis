@@ -1,0 +1,1567 @@
+{
+  "version": 1,
+  "source_sha256": "e4bae27143fca10e2300dd6a40e907b1184df290ea544d8795fb72d8cca896bd",
+  "fps": 30.0,
+  "method": "Revised from the first audio-assisted edit after reported truncated points. Visually inspected temporal context beyond every original Dylan endpoint, restored quiet returns and merged overlapping fragments. No score inference.",
+  "review": {
+    "scope": "All 122 original endpoints inspected from one second before through nine seconds after each cut; focused half-second sequences for 15 ambiguous endings. All proposed final endings then reviewed with one-second context samples. Uncertain short gaps joined to preserve quiet serves and returns.",
+    "limitations": "Conservative visual boundary revision, not exhaustive frame-by-frame ball annotation. Some short resets are intentionally retained. Complete source retained.",
+    "excluded_candidate_ids": [
+      3,
+      21,
+      42,
+      45,
+      53,
+      57,
+      62,
+      64,
+      65,
+      66,
+      73,
+      77,
+      78,
+      82,
+      91,
+      71,
+      98,
+      103,
+      104,
+      112,
+      118,
+      119,
+      127,
+      134,
+      135,
+      144,
+      147
+    ],
+    "revision_reason": "User reported points cut before play had finished; audio proposal endpoints were not reliable point endpoints.",
+    "previous_duration_seconds": 1055.5666666666666,
+    "preservation": "Every frame retained in revision 1 is still retained; revisions only restore footage and merge windows. Opening caught tosses remain outside the edit.",
+    "final_boundary_context_checked": true
+  },
+  "clips": [
+    {
+      "start_frame": 1113,
+      "end_frame": 1440,
+      "candidate_ids": [
+        0
+      ],
+      "v1_clip_indices": [
+        0
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 1350
+      }
+    },
+    {
+      "start_frame": 1914,
+      "end_frame": 2370,
+      "candidate_ids": [
+        1
+      ],
+      "v1_clip_indices": [
+        1
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 2280
+      }
+    },
+    {
+      "start_frame": 2607,
+      "end_frame": 2910,
+      "candidate_ids": [
+        2
+      ],
+      "v1_clip_indices": [
+        2
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 2820
+      }
+    },
+    {
+      "start_frame": 3465,
+      "end_frame": 3675,
+      "candidate_ids": [
+        4
+      ],
+      "v1_clip_indices": [
+        3
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 3585
+      }
+    },
+    {
+      "start_frame": 3915,
+      "end_frame": 4116,
+      "candidate_ids": [
+        5
+      ],
+      "v1_clip_indices": [
+        4
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 4026
+      }
+    },
+    {
+      "start_frame": 4230,
+      "end_frame": 4722,
+      "candidate_ids": [
+        6
+      ],
+      "v1_clip_indices": [
+        5
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 4632
+      }
+    },
+    {
+      "start_frame": 6353,
+      "end_frame": 6590,
+      "candidate_ids": [
+        7
+      ],
+      "v1_clip_indices": [
+        6
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 6500
+      }
+    },
+    {
+      "start_frame": 7112,
+      "end_frame": 7380,
+      "candidate_ids": [
+        8
+      ],
+      "v1_clip_indices": [
+        7
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 7259
+      }
+    },
+    {
+      "start_frame": 7580,
+      "end_frame": 7922,
+      "candidate_ids": [
+        9
+      ],
+      "v1_clip_indices": [
+        8
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 7832
+      }
+    },
+    {
+      "start_frame": 8177,
+      "end_frame": 8387,
+      "candidate_ids": [
+        10
+      ],
+      "v1_clip_indices": [
+        9
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 8297
+      }
+    },
+    {
+      "start_frame": 8517,
+      "end_frame": 8803,
+      "candidate_ids": [
+        11
+      ],
+      "v1_clip_indices": [
+        10
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 8713
+      }
+    },
+    {
+      "start_frame": 9215,
+      "end_frame": 9425,
+      "candidate_ids": [
+        12
+      ],
+      "v1_clip_indices": [
+        11
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 9335
+      }
+    },
+    {
+      "start_frame": 9801,
+      "end_frame": 10140,
+      "candidate_ids": [
+        13
+      ],
+      "v1_clip_indices": [
+        12
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 10011
+      }
+    },
+    {
+      "start_frame": 10930,
+      "end_frame": 11348,
+      "candidate_ids": [
+        14
+      ],
+      "v1_clip_indices": [
+        13
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 11258
+      }
+    },
+    {
+      "start_frame": 11963,
+      "end_frame": 12245,
+      "candidate_ids": [
+        15
+      ],
+      "v1_clip_indices": [
+        14
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 12155
+      }
+    },
+    {
+      "start_frame": 12736,
+      "end_frame": 13133,
+      "candidate_ids": [
+        16
+      ],
+      "v1_clip_indices": [
+        15
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 13043
+      }
+    },
+    {
+      "start_frame": 13358,
+      "end_frame": 13778,
+      "candidate_ids": [
+        17
+      ],
+      "v1_clip_indices": [
+        16
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 13688
+      }
+    },
+    {
+      "start_frame": 14163,
+      "end_frame": 15015,
+      "candidate_ids": [
+        18,
+        19
+      ],
+      "v1_clip_indices": [
+        17,
+        18
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 14869
+      }
+    },
+    {
+      "start_frame": 15706,
+      "end_frame": 16118,
+      "candidate_ids": [
+        20
+      ],
+      "v1_clip_indices": [
+        19
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 16028
+      }
+    },
+    {
+      "start_frame": 17895,
+      "end_frame": 18171,
+      "candidate_ids": [
+        22
+      ],
+      "v1_clip_indices": [
+        20
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 18081
+      }
+    },
+    {
+      "start_frame": 18929,
+      "end_frame": 19234,
+      "candidate_ids": [
+        23
+      ],
+      "v1_clip_indices": [
+        21
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 19144
+      }
+    },
+    {
+      "start_frame": 19578,
+      "end_frame": 19845,
+      "candidate_ids": [
+        24
+      ],
+      "v1_clip_indices": [
+        22
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 19755
+      }
+    },
+    {
+      "start_frame": 21079,
+      "end_frame": 21458,
+      "candidate_ids": [
+        25
+      ],
+      "v1_clip_indices": [
+        23
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 21368
+      }
+    },
+    {
+      "start_frame": 21792,
+      "end_frame": 22248,
+      "candidate_ids": [
+        26
+      ],
+      "v1_clip_indices": [
+        24
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 22158
+      }
+    },
+    {
+      "start_frame": 22931,
+      "end_frame": 23255,
+      "candidate_ids": [
+        27
+      ],
+      "v1_clip_indices": [
+        25
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 23165
+      }
+    },
+    {
+      "start_frame": 24040,
+      "end_frame": 24507,
+      "candidate_ids": [
+        28,
+        29
+      ],
+      "v1_clip_indices": [
+        26,
+        27
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 24417
+      }
+    },
+    {
+      "start_frame": 24894,
+      "end_frame": 25196,
+      "candidate_ids": [
+        30
+      ],
+      "v1_clip_indices": [
+        28
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 25106
+      }
+    },
+    {
+      "start_frame": 25484,
+      "end_frame": 26467,
+      "candidate_ids": [
+        31
+      ],
+      "v1_clip_indices": [
+        29
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 26377
+      }
+    },
+    {
+      "start_frame": 27863,
+      "end_frame": 28260,
+      "candidate_ids": [
+        32
+      ],
+      "v1_clip_indices": [
+        30
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 28170
+      }
+    },
+    {
+      "start_frame": 28753,
+      "end_frame": 29070,
+      "candidate_ids": [
+        33
+      ],
+      "v1_clip_indices": [
+        31
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 28940
+      }
+    },
+    {
+      "start_frame": 29657,
+      "end_frame": 30010,
+      "candidate_ids": [
+        34
+      ],
+      "v1_clip_indices": [
+        32
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 29920
+      }
+    },
+    {
+      "start_frame": 31027,
+      "end_frame": 31579,
+      "candidate_ids": [
+        35,
+        36
+      ],
+      "v1_clip_indices": [
+        33,
+        34
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 31489
+      }
+    },
+    {
+      "start_frame": 32392,
+      "end_frame": 32626,
+      "candidate_ids": [
+        37
+      ],
+      "v1_clip_indices": [
+        35
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 32536
+      }
+    },
+    {
+      "start_frame": 32805,
+      "end_frame": 33015,
+      "candidate_ids": [
+        38
+      ],
+      "v1_clip_indices": [
+        36
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 32925
+      }
+    },
+    {
+      "start_frame": 33498,
+      "end_frame": 34205,
+      "candidate_ids": [
+        39
+      ],
+      "v1_clip_indices": [
+        37
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 34115
+      }
+    },
+    {
+      "start_frame": 34898,
+      "end_frame": 35379,
+      "candidate_ids": [
+        40
+      ],
+      "v1_clip_indices": [
+        38
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 35289
+      }
+    },
+    {
+      "start_frame": 39056,
+      "end_frame": 39445,
+      "candidate_ids": [
+        41
+      ],
+      "v1_clip_indices": [
+        39
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 39355
+      }
+    },
+    {
+      "start_frame": 40421,
+      "end_frame": 40631,
+      "candidate_ids": [
+        43
+      ],
+      "v1_clip_indices": [
+        40
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 40541
+      }
+    },
+    {
+      "start_frame": 40718,
+      "end_frame": 41068,
+      "candidate_ids": [
+        44
+      ],
+      "v1_clip_indices": [
+        41
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 40978
+      }
+    },
+    {
+      "start_frame": 41504,
+      "end_frame": 41732,
+      "candidate_ids": [
+        46
+      ],
+      "v1_clip_indices": [
+        42
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 41642
+      }
+    },
+    {
+      "start_frame": 41981,
+      "end_frame": 42521,
+      "candidate_ids": [
+        47
+      ],
+      "v1_clip_indices": [
+        43
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 42431
+      }
+    },
+    {
+      "start_frame": 43233,
+      "end_frame": 43605,
+      "candidate_ids": [
+        48
+      ],
+      "v1_clip_indices": [
+        44
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 43515
+      }
+    },
+    {
+      "start_frame": 43956,
+      "end_frame": 44250,
+      "candidate_ids": [
+        49
+      ],
+      "v1_clip_indices": [
+        45
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 44141
+      }
+    },
+    {
+      "start_frame": 45383,
+      "end_frame": 45981,
+      "candidate_ids": [
+        50,
+        51
+      ],
+      "v1_clip_indices": [
+        46,
+        47
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 45891,
+        "joined_reason": "Preserve quiet serve/return continuity across uncertain short reset."
+      }
+    },
+    {
+      "start_frame": 47226,
+      "end_frame": 47863,
+      "candidate_ids": [
+        52
+      ],
+      "v1_clip_indices": [
+        48
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 47773
+      }
+    },
+    {
+      "start_frame": 48413,
+      "end_frame": 48924,
+      "candidate_ids": [
+        54
+      ],
+      "v1_clip_indices": [
+        49
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 48834
+      }
+    },
+    {
+      "start_frame": 49189,
+      "end_frame": 49945,
+      "candidate_ids": [
+        55
+      ],
+      "v1_clip_indices": [
+        50
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 49855
+      }
+    },
+    {
+      "start_frame": 50625,
+      "end_frame": 50862,
+      "candidate_ids": [
+        56
+      ],
+      "v1_clip_indices": [
+        51
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 50772
+      }
+    },
+    {
+      "start_frame": 54732,
+      "end_frame": 55033,
+      "candidate_ids": [
+        58
+      ],
+      "v1_clip_indices": [
+        52
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 54943
+      }
+    },
+    {
+      "start_frame": 55497,
+      "end_frame": 55707,
+      "candidate_ids": [
+        59
+      ],
+      "v1_clip_indices": [
+        53
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 55617
+      }
+    },
+    {
+      "start_frame": 56288,
+      "end_frame": 56561,
+      "candidate_ids": [
+        60
+      ],
+      "v1_clip_indices": [
+        54
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 56471
+      }
+    },
+    {
+      "start_frame": 56649,
+      "end_frame": 56865,
+      "candidate_ids": [
+        "quiet_serve_review"
+      ],
+      "v1_clip_indices": [
+        55
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 56775
+      }
+    },
+    {
+      "start_frame": 58051,
+      "end_frame": 58701,
+      "candidate_ids": [
+        61
+      ],
+      "v1_clip_indices": [
+        56
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 58611
+      }
+    },
+    {
+      "start_frame": 59829,
+      "end_frame": 60196,
+      "candidate_ids": [
+        63
+      ],
+      "v1_clip_indices": [
+        57
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 60106
+      }
+    },
+    {
+      "start_frame": 63019,
+      "end_frame": 63229,
+      "candidate_ids": [
+        67
+      ],
+      "v1_clip_indices": [
+        58
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 63139
+      }
+    },
+    {
+      "start_frame": 63380,
+      "end_frame": 63969,
+      "candidate_ids": [
+        68,
+        69
+      ],
+      "v1_clip_indices": [
+        59,
+        60
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 63879
+      }
+    },
+    {
+      "start_frame": 64335,
+      "end_frame": 64545,
+      "candidate_ids": [
+        70
+      ],
+      "v1_clip_indices": [
+        61
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 64455
+      }
+    },
+    {
+      "start_frame": 65181,
+      "end_frame": 65989,
+      "candidate_ids": [
+        72
+      ],
+      "v1_clip_indices": [
+        62
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 65899
+      }
+    },
+    {
+      "start_frame": 66377,
+      "end_frame": 67053,
+      "candidate_ids": [
+        74
+      ],
+      "v1_clip_indices": [
+        63
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 66963
+      }
+    },
+    {
+      "start_frame": 67265,
+      "end_frame": 67786,
+      "candidate_ids": [
+        75,
+        76
+      ],
+      "v1_clip_indices": [
+        64,
+        65
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 67696
+      }
+    },
+    {
+      "start_frame": 70179,
+      "end_frame": 70389,
+      "candidate_ids": [
+        79
+      ],
+      "v1_clip_indices": [
+        66
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 70299
+      }
+    },
+    {
+      "start_frame": 70546,
+      "end_frame": 71089,
+      "candidate_ids": [
+        80
+      ],
+      "v1_clip_indices": [
+        67
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 70999
+      }
+    },
+    {
+      "start_frame": 71358,
+      "end_frame": 71586,
+      "candidate_ids": [
+        81
+      ],
+      "v1_clip_indices": [
+        68
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 71496
+      }
+    },
+    {
+      "start_frame": 71900,
+      "end_frame": 72191,
+      "candidate_ids": [
+        83
+      ],
+      "v1_clip_indices": [
+        69
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 72101
+      }
+    },
+    {
+      "start_frame": 72545,
+      "end_frame": 72755,
+      "candidate_ids": [
+        84
+      ],
+      "v1_clip_indices": [
+        70
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 72665
+      }
+    },
+    {
+      "start_frame": 73407,
+      "end_frame": 73617,
+      "candidate_ids": [
+        85
+      ],
+      "v1_clip_indices": [
+        71
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 73527
+      }
+    },
+    {
+      "start_frame": 73847,
+      "end_frame": 74175,
+      "candidate_ids": [
+        86
+      ],
+      "v1_clip_indices": [
+        72
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 74085
+      }
+    },
+    {
+      "start_frame": 74449,
+      "end_frame": 74683,
+      "candidate_ids": [
+        87
+      ],
+      "v1_clip_indices": [
+        73
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 74593
+      }
+    },
+    {
+      "start_frame": 74760,
+      "end_frame": 75742,
+      "candidate_ids": [
+        88
+      ],
+      "v1_clip_indices": [
+        74
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 75652
+      }
+    },
+    {
+      "start_frame": 75943,
+      "end_frame": 76171,
+      "candidate_ids": [
+        89
+      ],
+      "v1_clip_indices": [
+        75
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 76081
+      }
+    },
+    {
+      "start_frame": 76307,
+      "end_frame": 76580,
+      "candidate_ids": [
+        90
+      ],
+      "v1_clip_indices": [
+        76
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 76490
+      }
+    },
+    {
+      "start_frame": 77011,
+      "end_frame": 77576,
+      "candidate_ids": [
+        92
+      ],
+      "v1_clip_indices": [
+        77
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 77486
+      }
+    },
+    {
+      "start_frame": 78268,
+      "end_frame": 78478,
+      "candidate_ids": [
+        93
+      ],
+      "v1_clip_indices": [
+        78
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 78388
+      }
+    },
+    {
+      "start_frame": 78591,
+      "end_frame": 78975,
+      "candidate_ids": [
+        94
+      ],
+      "v1_clip_indices": [
+        79
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 78885
+      }
+    },
+    {
+      "start_frame": 80055,
+      "end_frame": 80365,
+      "candidate_ids": [
+        95
+      ],
+      "v1_clip_indices": [
+        80
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 80275
+      }
+    },
+    {
+      "start_frame": 80505,
+      "end_frame": 80952,
+      "candidate_ids": [
+        96
+      ],
+      "v1_clip_indices": [
+        81
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 80862
+      }
+    },
+    {
+      "start_frame": 81234,
+      "end_frame": 81444,
+      "candidate_ids": [
+        97
+      ],
+      "v1_clip_indices": [
+        82
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 81354
+      }
+    },
+    {
+      "start_frame": 82072,
+      "end_frame": 82646,
+      "candidate_ids": [
+        99
+      ],
+      "v1_clip_indices": [
+        83
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 82556
+      }
+    },
+    {
+      "start_frame": 82846,
+      "end_frame": 83181,
+      "candidate_ids": [
+        100
+      ],
+      "v1_clip_indices": [
+        84
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 83091
+      }
+    },
+    {
+      "start_frame": 83266,
+      "end_frame": 83764,
+      "candidate_ids": [
+        101
+      ],
+      "v1_clip_indices": [
+        85
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 83674
+      }
+    },
+    {
+      "start_frame": 84099,
+      "end_frame": 84672,
+      "candidate_ids": [
+        102
+      ],
+      "v1_clip_indices": [
+        86
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 84582
+      }
+    },
+    {
+      "start_frame": 86161,
+      "end_frame": 86954,
+      "candidate_ids": [
+        105,
+        106
+      ],
+      "v1_clip_indices": [
+        87,
+        88
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 86864,
+        "joined_reason": "Preserve quiet serve/return continuity across uncertain short reset."
+      }
+    },
+    {
+      "start_frame": 87165,
+      "end_frame": 89309,
+      "candidate_ids": [
+        107,
+        108,
+        109,
+        110,
+        111
+      ],
+      "v1_clip_indices": [
+        89,
+        90,
+        91,
+        92,
+        93
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 89219,
+        "joined_reason": "Preserve quiet serve/return continuity across uncertain short reset."
+      }
+    },
+    {
+      "start_frame": 91611,
+      "end_frame": 91980,
+      "candidate_ids": [
+        113
+      ],
+      "v1_clip_indices": [
+        94
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 91836
+      }
+    },
+    {
+      "start_frame": 92631,
+      "end_frame": 93005,
+      "candidate_ids": [
+        114
+      ],
+      "v1_clip_indices": [
+        95
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 92915
+      }
+    },
+    {
+      "start_frame": 93514,
+      "end_frame": 93818,
+      "candidate_ids": [
+        115
+      ],
+      "v1_clip_indices": [
+        96
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 93728
+      }
+    },
+    {
+      "start_frame": 94259,
+      "end_frame": 94590,
+      "candidate_ids": [
+        116
+      ],
+      "v1_clip_indices": [
+        97
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 94483
+      }
+    },
+    {
+      "start_frame": 95515,
+      "end_frame": 96041,
+      "candidate_ids": [
+        117
+      ],
+      "v1_clip_indices": [
+        98
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 95951
+      }
+    },
+    {
+      "start_frame": 98003,
+      "end_frame": 98379,
+      "candidate_ids": [
+        120
+      ],
+      "v1_clip_indices": [
+        99
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 98289
+      }
+    },
+    {
+      "start_frame": 98614,
+      "end_frame": 99467,
+      "candidate_ids": [
+        121,
+        122
+      ],
+      "v1_clip_indices": [
+        100,
+        101
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 99377,
+        "joined_reason": "Preserve quiet serve/return continuity across uncertain short reset."
+      }
+    },
+    {
+      "start_frame": 99979,
+      "end_frame": 100996,
+      "candidate_ids": [
+        123,
+        124,
+        125
+      ],
+      "v1_clip_indices": [
+        102,
+        103,
+        104
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 100906,
+        "joined_reason": "Preserve quiet serve/return continuity across uncertain short reset."
+      }
+    },
+    {
+      "start_frame": 101871,
+      "end_frame": 102130,
+      "candidate_ids": [
+        126
+      ],
+      "v1_clip_indices": [
+        105
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 102040
+      }
+    },
+    {
+      "start_frame": 103055,
+      "end_frame": 103283,
+      "candidate_ids": [
+        128
+      ],
+      "v1_clip_indices": [
+        106
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 103193
+      }
+    },
+    {
+      "start_frame": 103933,
+      "end_frame": 104214,
+      "candidate_ids": [
+        129
+      ],
+      "v1_clip_indices": [
+        107
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 104124
+      }
+    },
+    {
+      "start_frame": 104433,
+      "end_frame": 104938,
+      "candidate_ids": [
+        130,
+        131
+      ],
+      "v1_clip_indices": [
+        108,
+        109
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 104848
+      }
+    },
+    {
+      "start_frame": 105338,
+      "end_frame": 105762,
+      "candidate_ids": [
+        132
+      ],
+      "v1_clip_indices": [
+        110
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 105672
+      }
+    },
+    {
+      "start_frame": 106131,
+      "end_frame": 106442,
+      "candidate_ids": [
+        133
+      ],
+      "v1_clip_indices": [
+        111
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 106352
+      }
+    },
+    {
+      "start_frame": 108264,
+      "end_frame": 108586,
+      "candidate_ids": [
+        136
+      ],
+      "v1_clip_indices": [
+        112
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 108496
+      }
+    },
+    {
+      "start_frame": 108861,
+      "end_frame": 109071,
+      "candidate_ids": [
+        137
+      ],
+      "v1_clip_indices": [
+        113
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 108981
+      }
+    },
+    {
+      "start_frame": 109185,
+      "end_frame": 109421,
+      "candidate_ids": [
+        138
+      ],
+      "v1_clip_indices": [
+        114
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 109331
+      }
+    },
+    {
+      "start_frame": 109659,
+      "end_frame": 109898,
+      "candidate_ids": [
+        139
+      ],
+      "v1_clip_indices": [
+        115
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 109808
+      }
+    },
+    {
+      "start_frame": 110516,
+      "end_frame": 110850,
+      "candidate_ids": [
+        140
+      ],
+      "v1_clip_indices": [
+        116
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 110760
+      }
+    },
+    {
+      "start_frame": 111282,
+      "end_frame": 111644,
+      "candidate_ids": [
+        141
+      ],
+      "v1_clip_indices": [
+        117
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 111554
+      }
+    },
+    {
+      "start_frame": 111986,
+      "end_frame": 112609,
+      "candidate_ids": [
+        142,
+        143
+      ],
+      "v1_clip_indices": [
+        118,
+        119
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 112519
+      }
+    },
+    {
+      "start_frame": 113491,
+      "end_frame": 113718,
+      "candidate_ids": [
+        145
+      ],
+      "v1_clip_indices": [
+        120
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 113628
+      }
+    },
+    {
+      "start_frame": 114115,
+      "end_frame": 114600,
+      "candidate_ids": [
+        146
+      ],
+      "v1_clip_indices": [
+        121
+      ],
+      "boundary_review": {
+        "method": "visual temporal context beyond old endpoint; conservative tail",
+        "old_end_frame": 114235
+      }
+    }
+  ],
+  "revision": 2
+}

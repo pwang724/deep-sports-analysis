@@ -1,0 +1,201 @@
+{
+  "source_filename": "peter_richard_202609.MOV",
+  "source_sha256": "d14acd62d1727b577038da8aa62882c0e7ec2f32c7d7d23379a0185be8418f62",
+  "annotation_status": "draft, incomplete; never treat as finished scoring",
+  "log": {
+    "version": 1,
+    "source_sha256": "d14acd62d1727b577038da8aa62882c0e7ec2f32c7d7d23379a0185be8418f62",
+    "players": [
+      "Peter",
+      "Richard"
+    ],
+    "identities": {
+      "Richard": "Shirtless during later play. Gray top/black cap in earlier frames appears continuous with the same player; verify while reviewing."
+    },
+    "rules": {
+      "eleven": "first to 11, win by two",
+      "match": "standard advantage; default set tiebreak at 6-6"
+    },
+    "editing": "Retain point windows only; preserve missed first serves in the same point. Remove caught/aborted tosses, ball collection and dead time using separate retained clips.",
+    "segments": [
+      {
+        "id": "eleven_01",
+        "kind": "eleven",
+        "start": 36,
+        "end": 535,
+        "status": "draft",
+        "coverage_verified": false,
+        "initial_score": {
+          "points": [
+            0,
+            0
+          ],
+          "games": [
+            0,
+            0
+          ],
+          "sets": [
+            0,
+            0
+          ],
+          "verified": false
+        },
+        "notes": "Candidate grouping from rally play and breaks/end changes. Exact point windows, winners and game boundary require review. Four opening rally windows logged as drafts; check whether opening rallies are warmup or scored play.",
+        "points": [
+          {
+            "time": 59,
+            "winner": null,
+            "status": "draft",
+            "clips": [
+              {
+                "start": 40.5,
+                "end": 59.7,
+                "role": "rally"
+              }
+            ],
+            "notes": "Candidate rally window from visual 1 fps inspection. Confirm whether warmup or scored eleven, refine point end, and verify winner."
+          },
+          {
+            "time": 99,
+            "winner": null,
+            "status": "draft",
+            "clips": [
+              {
+                "start": 61,
+                "end": 99.7,
+                "role": "rally"
+              }
+            ],
+            "notes": "Candidate rally window from visual 1 fps inspection. Confirm whether warmup or scored eleven, refine point end, and verify winner."
+          },
+          {
+            "time": 124,
+            "winner": null,
+            "status": "draft",
+            "clips": [
+              {
+                "start": 110,
+                "end": 124.7,
+                "role": "rally"
+              }
+            ],
+            "notes": "Candidate rally window from visual 1 fps inspection. Confirm whether warmup or scored eleven, refine point end, and verify winner."
+          },
+          {
+            "time": 134.5,
+            "winner": null,
+            "status": "draft",
+            "clips": [
+              {
+                "start": 127.5,
+                "end": 135.2,
+                "role": "rally"
+              }
+            ],
+            "notes": "Candidate rally window from visual 1 fps inspection. Confirm whether warmup or scored eleven, refine point end, and verify winner."
+          }
+        ]
+      },
+      {
+        "id": "eleven_02",
+        "kind": "eleven",
+        "start": 580,
+        "end": 855,
+        "status": "draft",
+        "coverage_verified": false,
+        "initial_score": {
+          "points": [
+            0,
+            0
+          ],
+          "games": [
+            0,
+            0
+          ],
+          "sets": [
+            0,
+            0
+          ],
+          "verified": false
+        },
+        "notes": "Candidate grouping from rally play and breaks/end changes. Exact point windows, winners and game boundary require review.",
+        "points": []
+      },
+      {
+        "id": "eleven_03",
+        "kind": "eleven",
+        "start": 945,
+        "end": 1270,
+        "status": "draft",
+        "coverage_verified": false,
+        "initial_score": {
+          "points": [
+            0,
+            0
+          ],
+          "games": [
+            0,
+            0
+          ],
+          "sets": [
+            0,
+            0
+          ],
+          "verified": false
+        },
+        "notes": "Candidate grouping from rally play and breaks/end changes. Exact point windows, winners and game boundary require review.",
+        "points": []
+      },
+      {
+        "id": "eleven_04",
+        "kind": "eleven",
+        "start": 1355,
+        "end": 1850,
+        "status": "draft",
+        "coverage_verified": false,
+        "initial_score": {
+          "points": [
+            0,
+            0
+          ],
+          "games": [
+            0,
+            0
+          ],
+          "sets": [
+            0,
+            0
+          ],
+          "verified": false
+        },
+        "notes": "Candidate grouping from rally play and breaks/end changes. Exact point windows, winners and game boundary require review.",
+        "points": []
+      },
+      {
+        "id": "match",
+        "kind": "match",
+        "start": 1970,
+        "end": 3720.5,
+        "status": "draft",
+        "coverage_verified": false,
+        "initial_score": {
+          "points": [
+            0,
+            0
+          ],
+          "games": [
+            0,
+            0
+          ],
+          "sets": [
+            0,
+            0
+          ],
+          "verified": false
+        },
+        "notes": "Served play is visible from approximately 33 minutes. Check whether early served footage is warmup before finalizing the match start.",
+        "points": []
+      }
+    ]
+  }
+}

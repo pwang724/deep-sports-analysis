@@ -22,6 +22,7 @@ src/dsa/            importable package
   video.py          ffmpeg helpers
   preprocess/
     uso2026_highlights/  this video's cleanup code and settings
+    desktop_tennis/     phone-video normalization, point edits and scored exports
     media.py            shared video I/O
     manifest.py         retained source intervals consumed by tracking
   cloud/

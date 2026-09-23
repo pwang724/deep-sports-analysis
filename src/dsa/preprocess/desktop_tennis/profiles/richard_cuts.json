@@ -1,0 +1,1263 @@
+{
+  "version": 1,
+  "source_sha256": "d14acd62d1727b577038da8aa62882c0e7ec2f32c7d7d23379a0185be8418f62",
+  "fps": 30.0,
+  "method": "Revision of the first acoustic activity edit after visual temporal review of all original endings, focused ambiguous intervals and quiet serves. No score inference.",
+  "review": {
+    "scope": "All 135 original endpoints inspected from one second before through nine seconds after each cut. Thirty ambiguous or extended intervals inspected at quarter-second, half-second or one-second spacing; final recording remainder also checked. All original starts checked from four seconds before through three seconds after; ten additional start-context intervals inspected. Every proposed final ending inspected from two seconds before through two seconds after.",
+    "limitations": "Visual boundary correction, not exhaustive frame-by-frame ball tracking. Short resets intentionally retained to protect play continuity. Complete source preserved.",
+    "excluded_candidate_ids": [
+      67,
+      68,
+      108
+    ],
+    "previous_duration_seconds": 1414.2,
+    "preservation": "All original retained play preserved. The sole excluded original window, index 47 (1296.4\u20131304.833 seconds), shows an empty court while players sit at the bench; neighboring court audio was a false positive.",
+    "final_boundary_context_checked": true,
+    "removed_false_positive_v1_indices": [
+      47
+    ]
+  },
+  "clips": [
+    {
+      "start_frame": 1215,
+      "end_frame": 3081,
+      "candidate_ids": [
+        0,
+        1
+      ],
+      "v1_clip_indices": [
+        0,
+        1
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 2991,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 3300,
+      "end_frame": 4335,
+      "candidate_ids": [
+        2,
+        3
+      ],
+      "v1_clip_indices": [
+        2,
+        3
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 4056,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 4456,
+      "end_frame": 4853,
+      "candidate_ids": [
+        4
+      ],
+      "v1_clip_indices": [
+        4
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 4763
+      }
+    },
+    {
+      "start_frame": 5183,
+      "end_frame": 6240,
+      "candidate_ids": [
+        5,
+        6
+      ],
+      "v1_clip_indices": [
+        5,
+        6
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 6117,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 6843,
+      "end_frame": 8257,
+      "candidate_ids": [
+        7,
+        8
+      ],
+      "v1_clip_indices": [
+        7,
+        8
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 8167,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 8705,
+      "end_frame": 9141,
+      "candidate_ids": [
+        9
+      ],
+      "v1_clip_indices": [
+        9
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 9051
+      }
+    },
+    {
+      "start_frame": 9468,
+      "end_frame": 11769,
+      "candidate_ids": [
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "v1_clip_indices": [
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 11679,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 12188,
+      "end_frame": 14147,
+      "candidate_ids": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "v1_clip_indices": [
+        15,
+        16,
+        17,
+        18
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 14057,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 14736,
+      "end_frame": 15685,
+      "candidate_ids": [
+        19,
+        20,
+        21
+      ],
+      "v1_clip_indices": [
+        19,
+        20,
+        21
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 15595,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 17756,
+      "end_frame": 18264,
+      "candidate_ids": [
+        22
+      ],
+      "v1_clip_indices": [
+        22
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 18174
+      }
+    },
+    {
+      "start_frame": 18437,
+      "end_frame": 20028,
+      "candidate_ids": [
+        23,
+        24,
+        25
+      ],
+      "v1_clip_indices": [
+        23,
+        24,
+        25
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 19938,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 20239,
+      "end_frame": 20850,
+      "candidate_ids": [
+        26,
+        27
+      ],
+      "v1_clip_indices": [
+        26,
+        27
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 20728,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 21300,
+      "end_frame": 21989,
+      "candidate_ids": [
+        28
+      ],
+      "v1_clip_indices": [
+        28
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 21899
+      }
+    },
+    {
+      "start_frame": 22252,
+      "end_frame": 22893,
+      "candidate_ids": [
+        29
+      ],
+      "v1_clip_indices": [
+        29
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 22803
+      }
+    },
+    {
+      "start_frame": 23128,
+      "end_frame": 24049,
+      "candidate_ids": [
+        30
+      ],
+      "v1_clip_indices": [
+        30
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 23959
+      }
+    },
+    {
+      "start_frame": 24213,
+      "end_frame": 24549,
+      "candidate_ids": [
+        31
+      ],
+      "v1_clip_indices": [
+        31
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 24459
+      }
+    },
+    {
+      "start_frame": 25017,
+      "end_frame": 25530,
+      "candidate_ids": [
+        32
+      ],
+      "v1_clip_indices": [
+        32
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 25345
+      }
+    },
+    {
+      "start_frame": 28295,
+      "end_frame": 28710,
+      "candidate_ids": [
+        33
+      ],
+      "v1_clip_indices": [
+        33
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 28620
+      }
+    },
+    {
+      "start_frame": 29133,
+      "end_frame": 30480,
+      "candidate_ids": [
+        34,
+        35,
+        36
+      ],
+      "v1_clip_indices": [
+        34,
+        35,
+        36
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 30363,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 30671,
+      "end_frame": 31440,
+      "candidate_ids": [
+        37,
+        38
+      ],
+      "v1_clip_indices": [
+        37,
+        38
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 31291,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 31744,
+      "end_frame": 32184,
+      "candidate_ids": [
+        39
+      ],
+      "v1_clip_indices": [
+        39
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 32094
+      }
+    },
+    {
+      "start_frame": 32547,
+      "end_frame": 33377,
+      "candidate_ids": [
+        40
+      ],
+      "v1_clip_indices": [
+        40
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 33287
+      }
+    },
+    {
+      "start_frame": 33520,
+      "end_frame": 34045,
+      "candidate_ids": [
+        41
+      ],
+      "v1_clip_indices": [
+        41
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 33955
+      }
+    },
+    {
+      "start_frame": 34656,
+      "end_frame": 35608,
+      "candidate_ids": [
+        42,
+        43
+      ],
+      "v1_clip_indices": [
+        42,
+        43
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 35518,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 36076,
+      "end_frame": 36390,
+      "candidate_ids": [
+        44
+      ],
+      "v1_clip_indices": [
+        44
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 36241
+      }
+    },
+    {
+      "start_frame": 36583,
+      "end_frame": 37848,
+      "candidate_ids": [
+        45,
+        46
+      ],
+      "v1_clip_indices": [
+        45,
+        46
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 37758,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 41008,
+      "end_frame": 42162,
+      "candidate_ids": [
+        48
+      ],
+      "v1_clip_indices": [
+        48
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 42072
+      }
+    },
+    {
+      "start_frame": 42658,
+      "end_frame": 44145,
+      "candidate_ids": [
+        49,
+        50
+      ],
+      "v1_clip_indices": [
+        49,
+        50
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 43985,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 44399,
+      "end_frame": 44734,
+      "candidate_ids": [
+        51
+      ],
+      "v1_clip_indices": [
+        51
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 44644
+      }
+    },
+    {
+      "start_frame": 44923,
+      "end_frame": 45891,
+      "candidate_ids": [
+        52,
+        53
+      ],
+      "v1_clip_indices": [
+        52,
+        53
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 45801,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 46224,
+      "end_frame": 46770,
+      "candidate_ids": [
+        54
+      ],
+      "v1_clip_indices": [
+        54
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 46530
+      }
+    },
+    {
+      "start_frame": 47344,
+      "end_frame": 48426,
+      "candidate_ids": [
+        55,
+        56
+      ],
+      "v1_clip_indices": [
+        55,
+        56
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 48336,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 48858,
+      "end_frame": 49294,
+      "candidate_ids": [
+        57
+      ],
+      "v1_clip_indices": [
+        57
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 49204
+      }
+    },
+    {
+      "start_frame": 49470,
+      "end_frame": 50364,
+      "candidate_ids": [
+        58
+      ],
+      "v1_clip_indices": [
+        58
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 50274
+      }
+    },
+    {
+      "start_frame": 50616,
+      "end_frame": 50906,
+      "candidate_ids": [
+        59
+      ],
+      "v1_clip_indices": [
+        59
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 50816
+      }
+    },
+    {
+      "start_frame": 51064,
+      "end_frame": 52699,
+      "candidate_ids": [
+        60,
+        61,
+        62
+      ],
+      "v1_clip_indices": [
+        60,
+        61,
+        62
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 52609,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 53173,
+      "end_frame": 54403,
+      "candidate_ids": [
+        63,
+        64,
+        65
+      ],
+      "v1_clip_indices": [
+        63,
+        64,
+        65
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 54313,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 54599,
+      "end_frame": 55200,
+      "candidate_ids": [
+        66
+      ],
+      "v1_clip_indices": [
+        66
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 55019
+      }
+    },
+    {
+      "start_frame": 59524,
+      "end_frame": 60110,
+      "candidate_ids": [
+        69
+      ],
+      "v1_clip_indices": [
+        67
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 60020
+      }
+    },
+    {
+      "start_frame": 60592,
+      "end_frame": 61423,
+      "candidate_ids": [
+        70,
+        71
+      ],
+      "v1_clip_indices": [
+        68,
+        69
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 61333,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 61654,
+      "end_frame": 62314,
+      "candidate_ids": [
+        72,
+        73
+      ],
+      "v1_clip_indices": [
+        70,
+        71
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 62224,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 62525,
+      "end_frame": 62999,
+      "candidate_ids": [
+        74,
+        75
+      ],
+      "v1_clip_indices": [
+        72,
+        73
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 62909,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 63165,
+      "end_frame": 65235,
+      "candidate_ids": [
+        76,
+        77,
+        78,
+        79
+      ],
+      "v1_clip_indices": [
+        74,
+        75,
+        76,
+        77
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 65145,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 65640,
+      "end_frame": 66457,
+      "candidate_ids": [
+        80,
+        81
+      ],
+      "v1_clip_indices": [
+        78,
+        79
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 66367,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation.",
+        "start_review": "Restore visually inspected quiet far-end serve/attempt before old start."
+      }
+    },
+    {
+      "start_frame": 67049,
+      "end_frame": 67846,
+      "candidate_ids": [
+        82,
+        83,
+        84
+      ],
+      "v1_clip_indices": [
+        80,
+        81,
+        82
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 67756,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 68510,
+      "end_frame": 69357,
+      "candidate_ids": [
+        85,
+        86,
+        87,
+        88
+      ],
+      "v1_clip_indices": [
+        83,
+        84,
+        85,
+        86
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 69267,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 69645,
+      "end_frame": 71885,
+      "candidate_ids": [
+        89,
+        90,
+        91,
+        92,
+        93,
+        94
+      ],
+      "v1_clip_indices": [
+        87,
+        88,
+        89,
+        90,
+        91,
+        92
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 71795,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation.",
+        "start_review": "Restore visually inspected quiet far-end serve/attempt before old start."
+      }
+    },
+    {
+      "start_frame": 74805,
+      "end_frame": 75650,
+      "candidate_ids": [
+        95,
+        96
+      ],
+      "v1_clip_indices": [
+        93,
+        94
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 75560,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation.",
+        "start_review": "Restore visually inspected quiet far-end serve/attempt before old start."
+      }
+    },
+    {
+      "start_frame": 75999,
+      "end_frame": 76721,
+      "candidate_ids": [
+        97,
+        98
+      ],
+      "v1_clip_indices": [
+        95,
+        96
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 76631,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 78725,
+      "end_frame": 79350,
+      "candidate_ids": [
+        99
+      ],
+      "v1_clip_indices": [
+        97
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 79144
+      }
+    },
+    {
+      "start_frame": 80317,
+      "end_frame": 81592,
+      "candidate_ids": [
+        100,
+        101,
+        102,
+        103
+      ],
+      "v1_clip_indices": [
+        98,
+        99,
+        100,
+        101
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 81502,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 82120,
+      "end_frame": 82660,
+      "candidate_ids": [
+        104
+      ],
+      "v1_clip_indices": [
+        102
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 82570
+      }
+    },
+    {
+      "start_frame": 83175,
+      "end_frame": 83636,
+      "candidate_ids": [
+        105
+      ],
+      "v1_clip_indices": [
+        103
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 83546
+      }
+    },
+    {
+      "start_frame": 84285,
+      "end_frame": 84849,
+      "candidate_ids": [
+        106
+      ],
+      "v1_clip_indices": [
+        104
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 84759
+      }
+    },
+    {
+      "start_frame": 85381,
+      "end_frame": 85591,
+      "candidate_ids": [
+        107
+      ],
+      "v1_clip_indices": [
+        105
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 85501
+      }
+    },
+    {
+      "start_frame": 85809,
+      "end_frame": 86019,
+      "candidate_ids": [
+        109
+      ],
+      "v1_clip_indices": [
+        106
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 85929
+      }
+    },
+    {
+      "start_frame": 86389,
+      "end_frame": 86677,
+      "candidate_ids": [
+        110
+      ],
+      "v1_clip_indices": [
+        107
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 86587
+      }
+    },
+    {
+      "start_frame": 87199,
+      "end_frame": 87780,
+      "candidate_ids": [
+        111
+      ],
+      "v1_clip_indices": [
+        108
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 87606
+      }
+    },
+    {
+      "start_frame": 88399,
+      "end_frame": 88866,
+      "candidate_ids": [
+        112
+      ],
+      "v1_clip_indices": [
+        109
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 88776
+      }
+    },
+    {
+      "start_frame": 89681,
+      "end_frame": 89891,
+      "candidate_ids": [
+        113
+      ],
+      "v1_clip_indices": [
+        110
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 89801
+      }
+    },
+    {
+      "start_frame": 90282,
+      "end_frame": 90587,
+      "candidate_ids": [
+        114
+      ],
+      "v1_clip_indices": [
+        111
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 90497
+      }
+    },
+    {
+      "start_frame": 91287,
+      "end_frame": 91497,
+      "candidate_ids": [
+        115
+      ],
+      "v1_clip_indices": [
+        112
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 91407
+      }
+    },
+    {
+      "start_frame": 91825,
+      "end_frame": 92247,
+      "candidate_ids": [
+        116
+      ],
+      "v1_clip_indices": [
+        113
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 92157
+      }
+    },
+    {
+      "start_frame": 93654,
+      "end_frame": 93888,
+      "candidate_ids": [
+        117
+      ],
+      "v1_clip_indices": [
+        114
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 93798
+      }
+    },
+    {
+      "start_frame": 94155,
+      "end_frame": 94365,
+      "candidate_ids": [
+        118
+      ],
+      "v1_clip_indices": [
+        115
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 94275
+      }
+    },
+    {
+      "start_frame": 94560,
+      "end_frame": 94890,
+      "candidate_ids": [
+        119
+      ],
+      "v1_clip_indices": [
+        116
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 94743
+      }
+    },
+    {
+      "start_frame": 95420,
+      "end_frame": 95654,
+      "candidate_ids": [
+        120
+      ],
+      "v1_clip_indices": [
+        117
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 95564
+      }
+    },
+    {
+      "start_frame": 95782,
+      "end_frame": 96186,
+      "candidate_ids": [
+        121
+      ],
+      "v1_clip_indices": [
+        118
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 96096
+      }
+    },
+    {
+      "start_frame": 96778,
+      "end_frame": 96988,
+      "candidate_ids": [
+        122
+      ],
+      "v1_clip_indices": [
+        119
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 96898
+      }
+    },
+    {
+      "start_frame": 97671,
+      "end_frame": 99270,
+      "candidate_ids": [
+        123,
+        124
+      ],
+      "v1_clip_indices": [
+        120,
+        121
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 98768,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 100324,
+      "end_frame": 100579,
+      "candidate_ids": [
+        125
+      ],
+      "v1_clip_indices": [
+        122
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 100489
+      }
+    },
+    {
+      "start_frame": 100852,
+      "end_frame": 101392,
+      "candidate_ids": [
+        126
+      ],
+      "v1_clip_indices": [
+        123
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 101302
+      }
+    },
+    {
+      "start_frame": 101775,
+      "end_frame": 102420,
+      "candidate_ids": [
+        127
+      ],
+      "v1_clip_indices": [
+        124
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 102292
+      }
+    },
+    {
+      "start_frame": 104468,
+      "end_frame": 105976,
+      "candidate_ids": [
+        128,
+        129,
+        130,
+        131
+      ],
+      "v1_clip_indices": [
+        125,
+        126,
+        127,
+        128
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 105886,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    },
+    {
+      "start_frame": 106315,
+      "end_frame": 106654,
+      "candidate_ids": [
+        132
+      ],
+      "v1_clip_indices": [
+        129
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 106564
+      }
+    },
+    {
+      "start_frame": 107030,
+      "end_frame": 107396,
+      "candidate_ids": [
+        133
+      ],
+      "v1_clip_indices": [
+        130
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 107306
+      }
+    },
+    {
+      "start_frame": 107616,
+      "end_frame": 107871,
+      "candidate_ids": [
+        134
+      ],
+      "v1_clip_indices": [
+        131
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 107781
+      }
+    },
+    {
+      "start_frame": 108182,
+      "end_frame": 109131,
+      "candidate_ids": [
+        135,
+        136,
+        137
+      ],
+      "v1_clip_indices": [
+        132,
+        133,
+        134
+      ],
+      "boundary_review": {
+        "method": "Visual temporal review beyond original endpoint; retain quiet continuation and conservative ending",
+        "old_end_frame": 109041,
+        "joined_reason": "Preserve play and nearby attempts across short resets or visually identified quiet continuation."
+      }
+    }
+  ],
+  "revision": 2
+}
