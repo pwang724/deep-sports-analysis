@@ -5,11 +5,12 @@ single network that reads raw tennis video (and its audio) once and returns,
 per frame or per event:
 
 - whether the frame is a usable court view, and whether a point is in play
-- player boxes, track identity and 17 joints
+- person boxes, track identity and 30 keypoints: 17 body joints, neck, head
+  top, 6 foot points and 5 racket points
 - the 14 court keypoints (hence the homography)
 - hit and bounce events, the hitter, and the stroke type at each hit
 - the ball position, from early-fused neighbouring frames
-- the contact point (hit frame + wrist/ball position, mapped to the court)
+- the contact point (hit frame + racket head / ball position, mapped to the court)
 
 WASB supplies the ball labels and stays as the fallback if the ball head
 falls short. Naming players and ball height are out of scope.
@@ -27,7 +28,7 @@ own footage, and the single model is trained on the merged, partial labels.
 ## Phases
 
 Each phase ends with a measurement, not a feeling. Numbers go in a
-`RESULTS-training.md` next to [RESULTS-pose.md](../RESULTS-pose.md).
+[RESULTS-training.md](../RESULTS-training.md).
 
 0. **Choose a labeler per task on public ground truth.** For every label type
    (joints, person boxes, court, ball, events, stroke, view,

@@ -6,14 +6,17 @@ on a score table plus the worst misses.
 ## Phase 0: choose a labeler per task (public ground truth)
 
 - [x] Training plan, model and data docs
-- [ ] Astra harness: `codex exec` wrapper, output schemas, image sheets, cache
-- [ ] Joints: Astra vs ViTPose on Tennis Player Actions, then confirm
+- [x] Astra harness: `codex exec` wrapper, output schemas, cache (`dsa.astra`)
+- [x] Joints: Astra vs ViTPose on Tennis Player Actions. Confirmed: ViTPose (0.818 vs 0.743 OKS, 100 images)
+- [ ] Neck / head top: choose a labeler, score on Tennis Player Actions neck, then confirm
+- [ ] Feet: RTMW (and ViTPose+ whole-body expert, if any) vs Astra on COCO-WholeBody feet, then confirm
 - [ ] Person boxes: Astra vs RF-DETR on TennisSegmentation + Tennis Player Actions, then confirm
 - [ ] Stroke type, coarse: Astra on Tennis Player Actions (4 classes), then confirm
 - [ ] View / in play, provisional: Astra vs USO manifest and Richard / Dylan cuts, then confirm
-- [ ] Download TennisCourtDetector, TrackNet tennis, RacketVision
+- [ ] Download TennisCourtDetector, TrackNet tennis, RacketVision, COCO-WholeBody
 - [ ] Label format and converters (TrackNet, TennisCourtDetector)
 - [ ] Ball: WASB vs Astra on TrackNet, then confirm
+- [ ] Racket labeler: train on RacketVision; score it and Astra, then confirm
 - [ ] Court labeler: fine-tune on TennisCourtDetector
 - [ ] Court: Astra vs court labeler on TennisCourtDetector, then confirm
 - [ ] Events: Astra vs event labeler on TrackNet (+ E2E-Spot), then confirm

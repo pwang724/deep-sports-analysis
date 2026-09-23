@@ -15,7 +15,10 @@ ground truth; they are labeler output to be scored against it.
 | Task | Human ground truth, local now | Human ground truth to download | Gap: must be generated | Next step |
 |---|---|---|---|---|
 | Person boxes | TennisSegmentation: 197 broadcast frames, both players (masks to boxes). Tennis Player Actions: 2,000 self-recorded images, one player each. | COCO person; TennisExpert boxes | Our phone footage, far player | Score Astra on both local sets; RF-DETR already scored (100% recall on the 197). Every person is labelled; no player / not-player label: players are the tracks the event head names as hitters. |
-| Joints | Tennis Player Actions: 2,000 images, 17 COCO joints + neck, ~200 px players | COCO keypoints (not tennis) | Far player and broadcast-size players: no public tennis labels | Score Astra (judge / correct ViTPose skeletons) against ViTPose's 0.824 OKS. Hand-label far players in the gold set. |
+| Body joints (17) | Tennis Player Actions: 2,000 images, 17 COCO joints + neck, ~200 px players | COCO keypoints (not tennis) | Far player and broadcast-size players: no public tennis labels | Done: ViTPose confirmed (0.818 vs Astra 0.743 OKS). Hand-label far players in the gold set. |
+| Neck, head top | Tennis Player Actions: neck | Halpe-FullBody (neck, head top) | Tennis head top; far player | Pick a labeler that predicts them (RTMW / Halpe-trained model; or neck = shoulder midpoint); score on Tennis Player Actions neck. |
+| Feet (big toe, small toe, heel, both sides) | none | COCO-WholeBody, Halpe-FullBody (not tennis) | Any tennis footage | Score RTMW (and ViTPose+'s whole-body expert, if it has one) and Astra on COCO-WholeBody feet; hand-label feet in the gold set. |
+| Racket (5 points) | none | RacketVision: ~150k tennis broadcast frames, racket box + 5 keypoints, not linked to a player | Handheld footage; which player holds it | Download; attach each racket to the nearest wrist; train a racket labeler; score it and Astra (pick among candidates). |
 | Court points | TennisSegmentation court mask (surface, not points; corners only approximate) | TennisCourtDetector: 8,841 frames, 14 points; Roboflow sets | Handheld / phone angles | Download TCD; score Astra (pick among candidate points) and a court model. Hand-label a few hundred own frames. |
 | Ball position | TennisSegmentation ball mask, where visible | TrackNet tennis 20k frames; RacketVision 64k | Handheld footage | Download TrackNet; score WASB and Astra (stop after 50 if poor). |
 | Hit / bounce timing, hitter | none | TrackNet (hit, bounce); E2E-Spot (serve, swing contact, bounce, near / far; videos via YouTube ids) | Handheld footage | Download TrackNet; score Astra on frame strips and the event labeler. |
@@ -45,7 +48,9 @@ bulk downloading.
 
 | Head | Labeler | Notes |
 |---|---|---|
-| players | RF-DETR Medium + ByteTrack + ViTPose-Plus-Huge (built, `dsa.pose`) | Run at 5-10 fps; interpolate. |
+| people, body joints | RF-DETR Medium + ByteTrack + ViTPose-Plus-Huge (built, `dsa.pose`) | Run at 5-10 fps; interpolate. |
+| neck, head top, feet | RTMW-l (133 whole-body points) or a Halpe-trained model; chosen in phase 0 | |
+| racket | model trained on RacketVision; chosen in phase 0 | Assigned to the nearest wrist. |
 | court | court keypoint model fine-tuned on TennisCourtDetector (PLAN step 3) | Keep labels only with 4+ confident points and low reprojection error. |
 | ball | WASB tennis weights | Labels for the ball head, and its fallback; the track also feeds the event labels. |
 | events | audio onsets + wrist speed + ball direction change, checked by Astra | E2E-Spot weights as a second opinion. |
@@ -99,7 +104,7 @@ are preserved, as in the preprocessing manifest ([PREPROCESSING.md](../PREPROCES
 ```
 video, fps, frame
 view_ok, in_play                        per frame
-players[]: track, box, is_player, joints[17][x, y, vis]
+people[]: track, box, keypoints[30][x, y, vis]   17 body, neck, head top, 6 feet, 5 racket
 court[14][x, y, vis]
 ball: x, y, vis                          optional
 events[]: frame, kind (hit|bounce|serve), hitter, stroke

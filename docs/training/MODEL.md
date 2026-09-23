@@ -9,7 +9,7 @@ and deliberately deferred.
 for each frame t (30 per window):
   frames t-1, t, t+1 ──> early fusion: 9 channels, 16 px patches ──> 3,600 tokens
       ──> transformer 1 (RF-DETR Medium backbone, pretrained) ──┬─> court head: 14 points + visibility
-                                                                ├─> DETR decoder: player tokens -> box, 17 joints
+                                                                ├─> DETR decoder: player tokens -> box, 30 keypoints
                                                                 ├─> ball head: x, y, visible -> ball token
                                                                 └─> shrink: 256 scene tokens
 
@@ -25,7 +25,7 @@ tokens per frame, 7,800 per window, instead of 108,000. Per-frame features are
 computed once and reused by every overlapping window.
 
 Contact point is computed, not predicted: the hit frame from the event head,
-the hitter's wrist (or ball) at that frame, mapped to court coordinates
+the hitter's racket head (or ball) at that frame, mapped to court coordinates
 through that frame's homography.
 
 ## Early fusion
@@ -75,11 +75,23 @@ Mitigation: a refinement head that crops each player's region from the
 backbone's features (RoIAlign) and predicts joint heatmaps there. Still one
 forward pass. Train at a higher resolution than COCO defaults.
 
+## Keypoints per person
+
+30 points on each person token: the 17 COCO body joints, neck, head top, six
+foot points (big toe, small toe, heel, each side) and five racket points.
+The racket is part of its holder's skeleton, as in Hawk-Eye's SkeleTRACK, so
+"whose racket" needs no matching step and the hitter's racket at contact is
+read off the token the event head names. Each point's loss counts only where
+that point is labelled: COCO and Tennis Player Actions supply body joints,
+Halpe / COCO-WholeBody supply head and feet, RacketVision supplies rackets.
+New points get their own OKS tolerances, looser than wrists for the racket.
+Hands (21 points each) are left out: too small on the far player.
+
 ## Heads, losses, masking
 
 | Head | Output | Loss |
 |---|---|---|
-| people | box, 17 joints + visibility (every person; players = hitters) | DETR set loss; OKS / heatmap loss on joints |
+| people | box, 30 keypoints + visibility (every person; players = hitters) | DETR set loss; OKS / heatmap loss on keypoints |
 | court | 14 heatmaps + visibility | focal heatmap loss |
 | ball | heatmap + visibility, per frame | focal heatmap loss |
 | view, in play | per-frame probability | BCE |
