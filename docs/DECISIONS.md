@@ -59,7 +59,9 @@ track-length heuristics (a filter at best); appearance clustering with a
 consistency check (not needed; the VLM answer is taken as final).
 
 Status: not built yet. Nothing downstream needs it until per-player questions
-are asked of the joints table, which today holds everyone.
+are asked of the joints table, which today holds everyone. The trained model
+(decision 6) does not need it: it detects every person and players are the
+tracks its event head names as hitters.
 
 ## 5. Preprocessing belongs to each video (2026-09-17)
 
@@ -72,4 +74,25 @@ tracking. See [PREPROCESSING.md](PREPROCESSING.md).
 The USO highlights silo currently uses DINOv2 keep/discard references, camera
 cuts and observed changes of view. That method and its calibration belong to
 this clip alone. Kept intervals retain source timestamps and camera boundaries.
-The future learned model goal is in [TRAINING-GOALS.md](TRAINING-GOALS.md).
+The learned replacement is decision 6.
+
+## 6. Direction: one multi-task model; the pipeline becomes the labeler (2026-09-23)
+
+The target is a single network that reads raw video and audio once and
+returns view and in-play state, players with joints and identity, court
+points, hit/bounce events and stroke type. Per-video preprocessing becomes
+two of its outputs instead of hand-built recipes.
+
+No dataset labels all of this, so training merges public datasets (each
+covering a few heads) with labels produced by the best model per task over
+public self-recorded footage, plus Astra (via Codex) for categorical
+questions. Losses are masked to the labels each sample has.
+
+Tennis-only first: RF-DETR Medium (DINOv2 backbone + DETR decoder) with
+three-frame early fusion, a per-frame ball head, and a second transformer
+across frames; DINOv3 is the first ablation. Video encoders and VLM-as-model
+rejected on resolution and cost; the sport-general design is deferred. WASB
+labels the ball and is the fallback. Decisions 1-5 remain the
+production path until the model matches them on a held-out gold set.
+Plan: [training/](training/README.md).
+

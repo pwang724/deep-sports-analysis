@@ -3,7 +3,9 @@
 Tennis video analysis from unfixed, handheld or broadcast footage. Three
 separate vision problems feed one shared coordinate system, and everything
 analytical is computed downstream in plain NumPy. Model choices are backed by
-[RESEARCH.md](RESEARCH.md). Data in [DATASETS.md](DATASETS.md).
+[RESEARCH.md](RESEARCH.md). Data in [DATASETS.md](DATASETS.md). This modular
+pipeline is also the labeler for the single trained model in
+[training/](training/README.md).
 
 ```
 video frame

@@ -50,8 +50,8 @@ download themselves on first use. For the benchmarks, put TennisSegmentation
 
 Each video owns its preprocessing code: cut away footage that is not useful
 before running analysis. See [preprocessing](docs/PREPROCESSING.md) and the
-[USO highlights recipe](src/dsa/preprocess/uso2026_highlights/README.md). Future joint model
-training goals are recorded in [TRAINING-GOALS.md](docs/TRAINING-GOALS.md).
+[USO highlights recipe](src/dsa/preprocess/uso2026_highlights/README.md). The plan for replacing
+the pipeline with one trained model is in [docs/training](docs/training/README.md).
 
 ```bash
 python scripts/joints.py data/raw/clip.mp4 --start 60 --duration 20 --stride 2   # local (MPS/CPU)
