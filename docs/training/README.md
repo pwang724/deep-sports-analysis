@@ -27,7 +27,7 @@ own footage, and the single model is trained on the merged, partial labels.
 
 ## Phases
 
-Each phase ends with a measurement, not a feeling. Numbers go in a
+Each phase ends with a measurement, not a feeling. Numbers go in
 [RESULTS-training.md](../RESULTS-training.md).
 
 0. **Choose a labeler per task on public ground truth.** For every label type
