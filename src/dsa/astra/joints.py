@@ -57,18 +57,24 @@ def sample(root: Path, per_action: int, seed: int = 0) -> list[tuple]:
             for i in sorted(rng.choice(len(items), min(per_action, len(items)), replace=False))]
 
 
+def upscaled_crop(bgr: np.ndarray, box: np.ndarray, path: Path) -> tuple[float, np.ndarray, tuple[int, int]]:
+    """Write the box padded 20% and upscaled to LONG_SIDE; return (scale, crop origin, crop w/h).
+
+    Map crop pixels back to the image with xy / scale + origin.
+    """
+    x1, y1, x2, y2 = crop_box(bgr.shape[:2], box, 0.2)
+    scale = LONG_SIDE / max(y2 - y1, x2 - x1)
+    crop = cv2.resize(bgr[y1:y2, x1:x2], None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+    cv2.imwrite(str(path), crop)
+    return scale, np.array([x1, y1], float), (crop.shape[1], crop.shape[0])
+
+
 def label_one(item: tuple, crops_dir: Path, cache_dir: Path) -> dict:
     action, file_name, path, gt, vis, box = item
-    bgr = cv2.imread(str(path))
-    x1, y1, x2, y2 = crop_box(bgr.shape[:2], box, 0.2)
-    crop = bgr[y1:y2, x1:x2]
-    scale = LONG_SIDE / max(crop.shape[:2])
-    crop = cv2.resize(crop, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
     crop_path = crops_dir / f"{action}_{Path(file_name).stem}.png"
-    cv2.imwrite(str(crop_path), crop)
-    h, w = crop.shape[:2]
+    scale, origin, (w, h) = upscaled_crop(cv2.imread(str(path)), box, crop_path)
     answer, sec = ask(prompt(w, h), [crop_path], SCHEMA, cache_dir)
-    xy = np.array([[answer[j]["x"], answer[j]["y"]] for j in COCO17], float) / scale + [x1, y1]
+    xy = np.array([[answer[j]["x"], answer[j]["y"]] for j in COCO17], float) / scale + origin
     row = _score("astra", xy, gt, vis, box, action, file_name)
     row["sec"] = sec
     for k, j in enumerate(COCO17):

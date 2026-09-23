@@ -8,12 +8,12 @@ on a score table plus the worst misses.
 - [x] Training plan, model and data docs
 - [x] Astra harness: `codex exec` wrapper, output schemas, cache (`dsa.astra`)
 - [x] Joints: Astra vs ViTPose on Tennis Player Actions. Confirmed: ViTPose (0.818 vs 0.743 OKS, 100 images)
-- [ ] Neck / head top: choose a labeler, score on Tennis Player Actions neck, then confirm
-- [ ] Feet: RTMW (and ViTPose+ whole-body expert, if any) vs Astra on COCO-WholeBody feet, then confirm
+- [x] Neck: shoulder midpoint from ViTPose, no model. Head top: Halpe training data only, checked in the gold set
+- [ ] Feet: Astra on COCO-WholeBody val, 100 people: 0.787 OKS, 0.870 with left / right swaps fixed by nearest ViTPose ankle. Awaiting confirm
 - [ ] Person boxes: Astra vs RF-DETR on TennisSegmentation + Tennis Player Actions, then confirm
-- [ ] Stroke type, coarse: Astra on Tennis Player Actions (4 classes), then confirm
+- [ ] Stroke type, coarse: Astra on Tennis Player Actions: 99% (99 / 100). Awaiting confirm
 - [ ] View / in play, provisional: Astra vs USO manifest and Richard / Dylan cuts, then confirm
-- [ ] Download TennisCourtDetector, TrackNet tennis, RacketVision, COCO-WholeBody
+- [ ] Download TennisCourtDetector, TrackNet tennis, RacketVision (COCO-WholeBody val: done)
 - [ ] Label format and converters (TrackNet, TennisCourtDetector)
 - [ ] Ball: WASB vs Astra on TrackNet, then confirm
 - [ ] Racket labeler: train on RacketVision; score it and Astra, then confirm

@@ -16,8 +16,8 @@ ground truth; they are labeler output to be scored against it.
 |---|---|---|---|---|
 | Person boxes | TennisSegmentation: 197 broadcast frames, both players (masks to boxes). Tennis Player Actions: 2,000 self-recorded images, one player each. | COCO person; TennisExpert boxes | Our phone footage, far player | Score Astra on both local sets; RF-DETR already scored (100% recall on the 197). Every person is labelled; no player / not-player label: players are the tracks the event head names as hitters. |
 | Body joints (17) | Tennis Player Actions: 2,000 images, 17 COCO joints + neck, ~200 px players | COCO keypoints (not tennis) | Far player and broadcast-size players: no public tennis labels | Done: ViTPose confirmed (0.818 vs Astra 0.743 OKS). Hand-label far players in the gold set. |
-| Neck, head top | Tennis Player Actions: neck | Halpe-FullBody (neck, head top) | Tennis head top; far player | Pick a labeler that predicts them (RTMW / Halpe-trained model; or neck = shoulder midpoint); score on Tennis Player Actions neck. |
-| Feet (big toe, small toe, heel, both sides) | none | COCO-WholeBody, Halpe-FullBody (not tennis) | Any tennis footage | Score RTMW (and ViTPose+'s whole-body expert, if it has one) and Astra on COCO-WholeBody feet; hand-label feet in the gold set. |
+| Neck, head top | Tennis Player Actions: neck | Halpe-FullBody (neck, head top) | Tennis head top | Neck = shoulder midpoint of the ViTPose labels. Head top learned from Halpe only; checked in the gold set. |
+| Feet (big toe, small toe, heel, both sides) | COCO-WholeBody val (CC BY-NC; everyday photos, not tennis) | COCO-WholeBody train, Halpe-FullBody | Any tennis footage | Score Astra on COCO-WholeBody val; a pose model only if Astra is weak. Feet need only sparse labels, so Astra's speed is acceptable. Hand-label feet in the gold set. |
 | Racket (5 points) | none | RacketVision: ~150k tennis broadcast frames, racket box + 5 keypoints, not linked to a player | Handheld footage; which player holds it | Download; attach each racket to the nearest wrist; train a racket labeler; score it and Astra (pick among candidates). |
 | Court points | TennisSegmentation court mask (surface, not points; corners only approximate) | TennisCourtDetector: 8,841 frames, 14 points; Roboflow sets | Handheld / phone angles | Download TCD; score Astra (pick among candidate points) and a court model. Hand-label a few hundred own frames. |
 | Ball position | TennisSegmentation ball mask, where visible | TrackNet tennis 20k frames; RacketVision 64k | Handheld footage | Download TrackNet; score WASB and Astra (stop after 50 if poor). |
@@ -49,7 +49,8 @@ bulk downloading.
 | Head | Labeler | Notes |
 |---|---|---|
 | people, body joints | RF-DETR Medium + ByteTrack + ViTPose-Plus-Huge (built, `dsa.pose`) | Run at 5-10 fps; interpolate. |
-| neck, head top, feet | RTMW-l (133 whole-body points) or a Halpe-trained model; chosen in phase 0 | |
+| neck | shoulder midpoint of the ViTPose labels | |
+| feet | Astra on sparse keyframes if it passes phase 0; else RTMPose-Halpe26 | |
 | racket | model trained on RacketVision; chosen in phase 0 | Assigned to the nearest wrist. |
 | court | court keypoint model fine-tuned on TennisCourtDetector (PLAN step 3) | Keep labels only with 4+ confident points and low reprojection error. |
 | ball | WASB tennis weights | Labels for the ball head, and its fallback; the track also feeds the event labels. |
