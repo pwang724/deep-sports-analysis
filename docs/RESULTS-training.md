@@ -269,6 +269,39 @@ misses nearly still balls (serve toss, bounce before a serve). 91% of balls
 are found by at least one of the two, 77% by both. Loss was still falling at
 epoch 12.
 
+### More epochs vs more data (2026-09-24)
+
+Same model, 24 epochs on one L40S: TrackNet only (`9ch_24ep`), or TrackNet
+plus RacketVision's 431 tennis rallies, minus its test matches (`9ch_rv`).
+Also scored on the RacketVision test split (2,150 frames, 43 unseen matches).
+
+| model | TrackNet F1@4 | TrackNet F1@10 | missed visible | ball on empty | RV F1@4 | RV F1@10 |
+|---|---|---|---|---|---|---|
+| 9 ch, 12 epochs, TrackNet | 0.863 | 0.893 | 766 | 62 | 0.715 | 0.785 |
+| 9 ch, 24 epochs, TrackNet | 0.859 | 0.897 | 881 | 15 | 0.721 | 0.797 |
+| 9 ch, 24 epochs, + RacketVision | 0.805 | **0.950** | 401 | **8** | **0.909** | **0.926** |
+| WASB | **0.902** | **0.957** | 370 | 17 | 0.795 | 0.864 |
+
+TrackNet F1@4 / F1@10 by game (`9ch_rv` vs WASB): game 8 0.76 / 0.94 vs 0.91 /
+0.97; game 9 0.78 / 0.94 vs 0.85 / 0.96; game 10 0.86 / 0.97 vs 0.94 / 0.95.
+
+- **More epochs alone change nothing.** They only trade misses for false alarms.
+- **More data fixes recall.** Misses fall from 766 to 401 (WASB: 370), and on
+  unseen RacketVision matches the model beats WASB by 0.11 F1@4.
+- **The 4 px drop on TrackNet comes from label conventions, not from wrong
+  detections.** On fast balls, TrackNet-trained models (WASB included) land
+  1.0-1.1 px ahead of RacketVision's labels along the direction of travel.
+  `9ch_rv` lands 1.9 px behind TrackNet's labels and on RacketVision's
+  (-0.01 px). The share of balls found at 4-10 px rather than within 4 px
+  rises from 3.4% to 15%. A frame shift is ruled out: WASB matches best at
+  offset 0, and one frame off costs 6-11 px.
+- **The two models complement each other.** At 10 px, 96% of TrackNet balls
+  are found by `9ch_rv` or WASB, 88% by both.
+
+Modal cost: about $30 all in ($13.9 lost to spend-limit kills on H100, $11.3
+for `9ch_rv` and $1.8 for `9ch_24ep` on L40S, $2.9 for evaluations).
+Outputs are in output/train/ball_fusion/9ch_rv/.
+
 ## Cheaper Codex models vs Astra (2026-09-24)
 
 Same samples as phase 0, effort medium. Codex credits ran out before the
