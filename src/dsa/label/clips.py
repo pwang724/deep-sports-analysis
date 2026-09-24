@@ -13,8 +13,8 @@ Per clip:
              px from the shot's first frame).
   keyframes  every KEY_S seconds, plus the middle of any shot without one.
              Astra (dsa.label.prefill.scene_prompt) gives view, in play, the
-             players (numbered boxes) and 14 court points; then head top for
-             the players (feet deferred as in prefill).
+             players (numbered boxes) and 14 court points, in the slim v1 call
+             (keyframes answered before the switch keep their v0 answer).
   scope      a frame takes view / singles from the nearest keyframe of its
              shot. Out of scope (not a view, or Astra names > 2 players, i.e.
              doubles or crowd) -> scene only. Frames in a shot without a
@@ -70,7 +70,9 @@ from scipy.optimize import linear_sum_assignment
 from dsa.astra.court import diagram
 from dsa.data import schema
 from dsa.data.paths import DATA, RAW, SCRATCH, VIDEOS
-from dsa.label.prefill import ASTRA, PEOPLE, RACKETS, WASB, astra_feet, astra_scene, players
+from dsa.astra.codex import NotCached
+from dsa.label.prefill import (ASTRA, PEOPLE, RACKETS, WASB, astra_scene, draw_boxes, head_top_rule, players,
+                                  sheet_image)
 
 KEY_S = 2.0                    # Astra keyframe spacing: in play changes on a scale of seconds, a call costs ~20 s
 FLOW_W = 640                   # px width the camera shift is tracked at
@@ -84,6 +86,7 @@ TRACK_GAP_S = 0.5              # s a lost track may reappear within
 REACQ_S = 1.0                  # s a lost player may be re-acquired within (dsa.label.consistency too)
 REACQ_H_PER_S = 3.0            # box heights a second a player may move while lost
 REACQ_MARGIN = 1.5             # the next nearest person must be this much further away
+SCENE_VARIANT = "v1"           # slim scene call (dsa.astra.scene_cost): same accuracy, ~25% less of the Codex meter
 MAX_PLAYERS = 2                # singles: more named players means doubles or bystanders, out of scope
 EXCLUDED_CAMERAS = {"drone", "fence", "side"}
 JPEG_Q = 95                    # keyframes sent to Modal; q95 moves ViTPose joints by well under a pixel
@@ -416,10 +419,12 @@ def keyframe_items(clip: dict, keys: list[int], pose, work: Path) -> dict[int, d
         bgr = imgs[k]
         h, w = bgr.shape[:2]
         stem = f"{clip['clip']}__{k}"
-        sheet = [cv2.resize(imgs.get(k + round(o * fps), bgr), (640, round(640 * h / w))) for o in (-0.75, -0.25, 0.25, 0.75)]
-        paths = {n: work / f"{stem}{s}.jpg" for n, s in (("frame_path", ""), ("sheet_path", "_sheet"), ("boxes_path", "_boxes"))}
+        around = [imgs.get(k + round(o * fps), bgr) for o in (-0.75, -0.25, 0.25, 0.75)]
+        paths = {n: work / f"{stem}{s}.jpg" for n, s in (("frame_path", ""), ("sheet_path", "_sheet"), ("boxes_path", "_boxes"),
+                                                         ("sheet_v1_path", "_sheet_v1"), ("boxes_v1_path", "_boxes_v1"))}
         cv2.imwrite(str(paths["frame_path"]), bgr)
-        cv2.imwrite(str(paths["sheet_path"]), np.vstack([np.hstack(sheet[:2]), np.hstack(sheet[2:])]))
+        cv2.imwrite(str(paths["sheet_path"]), sheet_image(around, "v0"))
+        cv2.imwrite(str(paths["sheet_v1_path"]), sheet_image(around, "v1"))
         items[k] = {"row": {"sample": schema.sample_id("k", clip["clip"].replace("@", "_"), k)}, "bgr": bgr, **paths}
     # Cached: the numbered-box images, hence Astra's cache keys, must not move between reruns.
     cached = work / "keyframes" / f"{clip['clip']}.pkl"
@@ -442,23 +447,20 @@ def astra_keyframe(item: dict, work: Path, timer: Timer) -> dict:
         tmp = calls.save.with_suffix(f".{threading.get_ident()}.tmp")
         tmp.write_bytes(pickle.dumps(calls.get()))
         tmp.replace(calls.save)
-    boxed = item["bgr"].copy()
-    for j, p in enumerate(people):
-        x1, y1, x2, y2 = (int(v) for v in p["box"])
-        cv2.rectangle(boxed, (x1, y1), (x2, y2), (0, 255, 255), 2)
-        cv2.putText(boxed, str(j), (x1, max(y1 - 6, 16)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-    cv2.imwrite(str(item["boxes_path"]), boxed)
+    cv2.imwrite(str(item["boxes_path"]), draw_boxes(item["bgr"], people, "v0"))
+    cv2.imwrite(str(item["boxes_v1_path"]), draw_boxes(item["bgr"], people, "v1"))
     t0 = time.time()
-    sc = astra_scene(item, work / "diagram.png", CACHE)
+    try:                                  # keyframes labelled before the switch keep their paid v0 answer
+        sc = astra_scene(item, work / "diagram.png", CACHE, "v0", cache_only=True)
+        sc["variant"] = "v0"
+    except NotCached:
+        sc = astra_scene({**item, "sheet_path": item["sheet_v1_path"], "boxes_path": item["boxes_v1_path"]},
+                         work / "diagram.png", CACHE, SCENE_VARIANT)
+        sc["variant"] = SCENE_VARIANT
     timer.add("astra_scene", time.time() - t0)
     sc["singles"] = len(sc["players"]) <= MAX_PLAYERS
     sc["chosen"] = (sc["players"] or [int(i) for i in players(item["people"], sc["court"])][:MAX_PLAYERS]) \
         if sc["singles"] else []
-    sc["head"] = {}
-    if sc["view"] and sc["singles"] and sc["chosen"]:
-        t0 = time.time()
-        sc["head"] = astra_feet(item, sc["chosen"], work, CACHE)
-        timer.add("astra_head", time.time() - t0)
     item.pop("bgr")                       # 100 clips of keyframes would hold GBs
     return sc
 
@@ -701,15 +703,13 @@ def finish_clip(st: dict, cost: Cost) -> tuple[dict[str, list], dict[str, list]]
                 vis = np.where(p["score"] >= 0.3, 2.0, 1.0)
                 kp[:17] = np.column_stack([p["xy"], vis])
                 kp[schema.KP["neck"]] = [*((p["xy"][5] + p["xy"][6]) / 2), min(vis[5], vis[6])]
-                head = scenes[f]["head"].get(i) if f in keys else None
-                if head is not None:
-                    kp[schema.KP["head_top"]] = [*head["head_top"], 2.0]
+                kp[schema.KP["head_top"]] = [*head_top_rule(np.asarray(p["box"]), p["xy"], p["score"]), 2.0]
                 tid = tracks[(f, i)]
                 rows["people"].append({"sample": s, "person": i, "track": f"{clip['clip']}#{tid}",
                                        "box": schema.flat(p["box"]), "kp": kp, "stroke": None,
                                        "player": tid in player_tracks[sh],
                                        "named": (i in scenes[f]["chosen"]) if f in keys else None,
-                                       "labeler": PEOPLE + (f"; head top: {ASTRA}" if head is not None else ""),
+                                       "labeler": PEOPLE + "; head top: rule",
                                        "_score": p["score"]})
             if st["dets"] is not None:
                 heads.append("rackets")

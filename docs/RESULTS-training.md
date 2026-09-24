@@ -284,3 +284,27 @@ events test finished for Sol and started for Luna; stroke type untested.
 About 13k of each call's ~15-18k input tokens is Codex's own system prompt,
 so the models differ mainly in price per token, not in tokens used.
 
+## Cheaper Astra scene call (2026-09-24)
+
+The combined scene call (view, in play, players, 14 court points) on 120
+frames with ground truth, three variants run one after another, cost read
+from Codex's own usage meter (`dsa.astra.scene_cost`).
+
+| | V0 (frame, diagram, 640 px sheet, boxed frame) | V1 slim (diagram, 320 px sheet, thin-box frame) | V2 (V1, 4 frames a call) |
+|---|---|---|---|
+| court within 7 / 15 px (558 points) | 96.2% / 99.8% | 95.0% / 99.8% | 94.6% / 99.5% |
+| view (n=20) | 90% | 90% | 90% |
+| in play (n=20) | 65% | 65% | 70% |
+| players exact set (n=40) | 100% | 100% | 100% |
+| **meter per 100 keyframes** | **~16%** | **~12%** | **~9%** |
+
+Accuracy differences are within noise. In play is low in all three (false
+"not in play" 60-70%); the combined prompt misses more rallies than the
+dedicated phase-0 call (83%), a separate issue.
+
+Head top: a rule (face centre from ViTPose, the box top, or 0.774 x face to
+shoulder midpoint above the face when an arm is raised) agrees with Astra's
+head top to 1.9 px median, 0.023 of box height (p90 10.5 px) on 269 held-out
+players; where they differ most, Astra was more often the one off the head.
+The head-top call cost ~25% of the meter per 100 calls, more than a scene call.
+

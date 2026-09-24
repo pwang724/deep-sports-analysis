@@ -72,7 +72,9 @@ FEET_SCHEMA = {
 }
 
 
-def scene_prompt(w: int, h: int) -> str:
+def scene_prompt(w: int, h: int, variant: str = "v0") -> str:
+    if variant != "v0":
+        return slim_scene_prompt([(w, h)]) if variant == "v1" else slim_scene_prompt([(w, h)] * 4)
     return (
         f"The first image is a {w} x {h} frame of a tennis video. The second is a diagram of a tennis court "
         "seen from above, near baseline at the bottom, with 14 numbered points where lines cross. The third "
@@ -97,6 +99,84 @@ def scene_prompt(w: int, h: int) -> str:
         "or hidden, with your best estimate. If no court is visible, return 14 points at 0, 0 with in_view "
         "false. Look at the images directly; do not run any commands."
     )
+
+
+# Scene-call variants (dsa.astra.scene_cost compares them; clips uses v0):
+#   v0  keyframe, diagram, 2 x 2 sheet of 640 px tiles, keyframe with numbered boxes.
+#   v1  slim: diagram, 320 px sheet, keyframe with thin numbered corner boxes; trimmed prompt.
+#   v2  v1 for 4 keyframes in one call: diagram once, then sheet + boxed frame per moment.
+VARIANTS = ("v0", "v1", "v2")
+SHEET_WIDTH = {"v0": 640, "v1": 320, "v2": 320}
+BATCH = 4
+BATCH_SCHEMA = {"type": "object", "properties": {"moments": {"type": "array", "minItems": BATCH, "maxItems": BATCH,
+                                                             "items": SCENE_SCHEMA}},
+                "required": ["moments"], "additionalProperties": False}
+
+
+def slim_scene_prompt(sizes: list[tuple[int, int]]) -> str:
+    """Trimmed scene prompt for one moment (v1) or len(sizes) moments (v2)."""
+    if len(sizes) == 1:
+        head = ("Image 1: a numbered diagram of a tennis court from above, near baseline at the bottom, 14 points "
+                "where lines cross. Image 2: four frames 0.5 s apart in reading order, around the moment of image 3. "
+                f"Image 3: the {sizes[0][0]} x {sizes[0][1]} frame at that moment, each detected person marked by "
+                "numbered corner brackets.\n")
+        frame = "image 3"
+    else:
+        head = ("Image 1: a numbered diagram of a tennis court from above, near baseline at the bottom, 14 points "
+                f"where lines cross. Then {len(sizes)} moments, possibly from different videos, two images each: "
+                "first four frames 0.5 s apart in reading order (labelled with the moment number), then the frame at that moment, each "
+                "detected person marked by numbered corner brackets. "
+                + "; ".join(f"Moment {k + 1}: images {2 * k + 2}-{2 * k + 3}, frame {w} x {h}"
+                            for k, (w, h) in enumerate(sizes))
+                + f". Return `moments`: {len(sizes)} answers in moment order, each judged on its own images only.\n")
+        frame = "that moment's frame"
+    return (
+        head
+        + "view: a camera behind one baseline (any height) looking down the court, with the whole court (bar the "
+        "near corners) in view? Camera only: true even if players are off court. False for side-on or other "
+        "angles, court cut off, close-ups, replays, crowd, graphics.\n"
+        "in_play: on the main court (baseline nearest the camera), is a point under way, from serve toss to end "
+        "of rally, warm-ups included? False when collecting balls, walking, bouncing the ball before a serve, "
+        "resting, or the court is empty.\n"
+        "players: numbers of the people playing on the main court (not umpires, line judges, ball kids, coaches, "
+        "spectators, other courts); empty if none.\n"
+        f"court_visible: is a tennis court visible? If so, pixel coordinates in {frame} of the main court's 14 "
+        "points, in order:\n"
+        + "\n".join(f"{i + 1}. {p}" for i, p in enumerate(COURT_NAMES))
+        + "\nLeft and right as seen from the near baseline. in_view false for a point outside the frame or hidden "
+        "(best estimate). No court: 14 points at 0, 0, in_view false. Look at the images directly; do not run "
+        "any commands."
+    )
+
+
+def draw_boxes(bgr: np.ndarray, people: list[dict], variant: str = "v0") -> np.ndarray:
+    """The frame with every person's numbered box: v0 full 2 px boxes, else 1 px corner brackets that leave
+    most of each side (and the court lines under it) clear."""
+    boxed = bgr.copy()
+    for i, person in enumerate(people):
+        x1, y1, x2, y2 = (int(v) for v in person["box"])
+        if variant == "v0":
+            cv2.rectangle(boxed, (x1, y1), (x2, y2), (0, 255, 255), 2)
+            cv2.putText(boxed, str(i), (x1, max(y1 - 6, 16)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+            continue
+        lx, ly = max(4, (x2 - x1) // 4), max(4, (y2 - y1) // 5)
+        for cx, cy, dx, dy in ((x1, y1, 1, 1), (x2, y1, -1, 1), (x1, y2, 1, -1), (x2, y2, -1, -1)):
+            cv2.line(boxed, (cx, cy), (cx + dx * lx, cy), (0, 255, 255), 1)
+            cv2.line(boxed, (cx, cy), (cx, cy + dy * ly), (0, 255, 255), 1)
+        cv2.putText(boxed, str(i), (x1, max(y1 - 4, 14)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+    return boxed
+
+
+def sheet_image(frames: list[np.ndarray], variant: str = "v0", label: str | None = None) -> np.ndarray:
+    """2 x 2 sheet of the four frames at SHEET_WIDTH[variant] per tile, optionally labelled top-left."""
+    h, w = frames[0].shape[:2]
+    tw = SHEET_WIDTH[variant]
+    tiles = [cv2.resize(f, (tw, round(tw * h / w))) for f in frames]
+    sheet = np.vstack([np.hstack(tiles[:2]), np.hstack(tiles[2:])])
+    if label:
+        cv2.putText(sheet, label, (6, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 4)
+        cv2.putText(sheet, label, (6, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+    return sheet
 
 
 def feet_prompt(sizes: list[tuple[int, int]]) -> str:
@@ -213,15 +293,46 @@ def label_frame(row: dict, local: Local, work: Path) -> dict:
             "boxes_path": boxes_path, "people": people, "ball": local.ball(imgs[:3])}
 
 
-def astra_scene(item: dict, diagram_path: Path, cache: Path) -> dict:
-    h, w = item["bgr"].shape[:2]
-    ans, _ = ask(scene_prompt(w, h), [item["frame_path"].resolve(), diagram_path.resolve(),
-                                      item["sheet_path"].resolve(), item["boxes_path"].resolve()], SCENE_SCHEMA, cache)
+def parse_scene(ans: dict, n_people: int) -> dict:
     court = None
     if ans["court_visible"]:
         court = np.array([[p["x"], p["y"], 2.0 if p["in_view"] else 0.0] for p in ans["points"]])
-    named = [i for i in ans["players"] if 0 <= i < len(item["people"])]
+    named = [i for i in ans["players"] if 0 <= i < n_people]
     return {"view": ans["view"], "in_play": ans["in_play"], "court": court, "players": named}
+
+
+def astra_scene(item: dict, diagram_path: Path, cache: Path, variant: str = "v0", **kw) -> dict:
+    """One scene call. v0 wants frame_path, sheet_path, boxes_path; v1 wants sheet_path and boxes_path
+    made with sheet_image(..., "v1") and draw_boxes(..., "v1"). `kw` goes to ask (model, effort)."""
+    h, w = item["bgr"].shape[:2]
+    if variant == "v0":
+        imgs = [item["frame_path"], diagram_path, item["sheet_path"], item["boxes_path"]]
+    else:
+        imgs = [diagram_path, item["sheet_path"], item["boxes_path"]]
+    ans, _ = ask(scene_prompt(w, h, variant), [Path(p).resolve() for p in imgs], SCENE_SCHEMA, cache, **kw)
+    return parse_scene(ans, len(item["people"]))
+
+
+def astra_scenes(items: list[dict], diagram_path: Path, cache: Path, **kw) -> list[dict]:
+    """v2: the scene call for BATCH keyframes at once (fewer padded with the last one). Each item wants
+    sheet_path (sheet_image(..., "v2", label="moment k")) and boxes_path (draw_boxes(..., "v2"))."""
+    batch = list(items) + [items[-1]] * (BATCH - len(items))
+    sizes = [(it["bgr"].shape[1], it["bgr"].shape[0]) for it in batch]
+    imgs = [diagram_path] + [p for it in batch for p in (it["sheet_path"], it["boxes_path"])]
+    ans, _ = ask(slim_scene_prompt(sizes), [Path(p).resolve() for p in imgs], BATCH_SCHEMA, cache, **kw)
+    return [parse_scene(a, len(it["people"])) for a, it in zip(ans["moments"], items)]
+
+
+def head_top_rule(box: np.ndarray, xy: np.ndarray, score: np.ndarray) -> np.ndarray:
+    """Head top without Astra: the box top above the face centre, unless the box top is well above the head
+    (an arm raised in a serve), then face centre + 0.774 x (face-to-shoulder-midpoint distance) straight up.
+
+    Face centre = mean of the ViTPose nose, eyes and ears with score >= 0.3 (all five if none). Fitted on
+    half the clips_v1 keyframe players against Astra's head top (dsa.astra.scene_cost report)."""
+    ok = score[:5] >= 0.3
+    face = xy[:5][ok].mean(0) if ok.any() else xy[:5].mean(0)
+    est = face[1] - 0.774 * np.linalg.norm(face - (xy[5] + xy[6]) / 2)
+    return np.array([face[0], est if est - box[1] > 0.05 * (box[3] - box[1]) else box[1]])
 
 
 def astra_feet(item: dict, idx: list[int], work: Path, cache: Path) -> dict[int, np.ndarray]:

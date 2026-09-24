@@ -56,6 +56,10 @@ def usage(cache_dir: str | Path, model: str, effort: str, keys: set[str] | None 
             "reasoning_output_tokens": mean("reasoning_output_tokens")}
 
 
+class NotCached(RuntimeError):
+    pass
+
+
 def cache_key(model: str, effort: str, prompt: str, schema: dict, images: list[Path]) -> str:
     h = hashlib.sha256()
     for part in (model, effort, prompt, json.dumps(schema, sort_keys=True)):
@@ -67,13 +71,14 @@ def cache_key(model: str, effort: str, prompt: str, schema: dict, images: list[P
 
 
 def ask(prompt: str, images: list[Path], schema: dict, cache_dir: str | Path,
-        model: str = MODEL, effort: str = EFFORT, timeout: float = 600, retries: int = 2) -> tuple[dict, float]:
-    """Return (answer matching `schema`, seconds spent; 0 when cached)."""
+        model: str = MODEL, effort: str = EFFORT, timeout: float = 600, retries: int = 2,
+        cache_only: bool = False) -> tuple[dict, float]:
+    """Return (answer matching `schema`, seconds spent; 0 when cached). cache_only raises NotCached on a miss."""
     cache = Path(cache_dir) / f"{cache_key(model, effort, prompt, schema, images)}.json"
     if cache.exists():
         return json.loads(cache.read_text()), 0.0
-    if os.environ.get("DSA_ASTRA_CACHE_ONLY"):  # replay a past run without paying for misses
-        raise RuntimeError(f"not cached: {cache}")
+    if cache_only or os.environ.get("DSA_ASTRA_CACHE_ONLY"):  # replay a past run without paying for misses
+        raise NotCached(f"not cached: {cache}")
     cache.parent.mkdir(parents=True, exist_ok=True)
     t0, err = time.time(), None
     with tempfile.TemporaryDirectory() as tmp:
