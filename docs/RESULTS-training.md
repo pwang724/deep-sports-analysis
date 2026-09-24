@@ -241,3 +241,31 @@ court) enlarged, given for every timing window and for far-player strokes
 The crop fixes forehand / backhand for the far player and nothing else: far
 contact timing stays at 40%, slices stay missed (10 of 11 called ground
 strokes), and direction by eye stays near 60%.
+
+## Early-fusion ball head vs WASB (2026-09-23)
+
+RF-DETR Medium encoder with COCO weights, patch embed widened to 9 channels
+(frames t-1, t, t+1; neighbours start at zero), stride-4 heatmap head,
+1280 x 720 input. Trained on TrackNet games 1-7 (14,160 frames), 12 epochs,
+batch 16, AdamW 1e-4 (10x on the new layers), on one L40S. Scored on all of
+games 8-10 (5,675 frames, 5,472 with a ball); visible when the peak > 0.5,
+as WASB. `dsa.train.ball_fusion`, `dsa.cloud.train_ball`; outputs in
+output/train/ball_fusion/.
+
+| model | P@4 | R@4 | F1@4 | F1@10 | median px | missed visible | ball on empty |
+|---|---|---|---|---|---|---|---|
+| 9 channels (early fusion) | 0.927 | 0.808 | **0.863** | 0.893 | 1.7 | 766 | 62 |
+| 3 channels (1 frame, ablation) | 0.710 | 0.477 | 0.570 | 0.644 | 2.3 | 1,828 | 32 |
+| WASB (3 frames, no tracker) | 0.933 | 0.873 | **0.902** | 0.957 | 1.9 | 370 | 17 |
+
+F1@4 by game (9 ch / 1 ch / WASB): game 8 0.88 / 0.70 / 0.91, game 9 0.85 /
+0.66 / 0.85, game 10 0.86 / 0.38 / 0.94. The single frame collapses on game
+10 (blue court, hard sun and shade): 26% of its visible-ball frames put a
+confident peak on the baseline centre mark or a lit line corner; with three
+frames that falls to 4%. The fused model's remaining misses are faint balls
+on clay and balls against bodies, rackets, lines and the net; its false
+alarms are balls held between points that TrackNet leaves unlabelled. WASB
+misses nearly still balls (serve toss, bounce before a serve). 91% of balls
+are found by at least one of the two, 77% by both. Loss was still falling at
+epoch 12.
+

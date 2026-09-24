@@ -27,8 +27,8 @@ on a score table plus the worst misses.
 
 ## In parallel: early-fusion ball experiment
 
-- [ ] 9-channel RF-DETR Medium + ball head, trained on TrackNet
-- [ ] Compare with WASB on the same held-out split; decide ball head vs WASB
+- [x] 9-channel RF-DETR Medium + ball head, trained on TrackNet games 1-7 (12 epochs, L40S, 109 min)
+- [x] Compare with WASB on games 8-10 (5,675 frames): F1@4px 0.863 vs 0.902 (1-frame ablation 0.570). Decided: keep the ball head in the one model; WASB stays the ball labeler and fallback
 
 ## Phase 1: labelling set and gold set
 

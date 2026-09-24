@@ -121,3 +121,15 @@ replaced by singles. Frame by frame, a keyframe where Astra names more than
 2 players is treated like a non-view frame (scene labels only). Doubles can
 come back once singles works.
 
+## 10. The ball stays a head of the one model; WASB labels it for now (2026-09-23)
+
+Early fusion works: three stacked frames lift the ball head from F1 0.570 to
+0.863 at 4 px on TrackNet games 8-10, against WASB's 0.902, after one untuned
+12-epoch run on 14k frames from 7 matches. Where it finds the ball it is as
+precise as WASB (median 1.7 vs 1.9 px, precision 0.93 both); the gap is
+recall (766 missed visible balls vs 370), worst on the one unfamiliar court
+(game 10: 0.86 vs 0.94). The misses of the two rarely overlap, so training
+on WASB's labels over our varied footage is the direct fix, plus longer
+training and between-point negatives. WASB remains the ball labeler and
+the fallback until the head matches it on the test set.
+
