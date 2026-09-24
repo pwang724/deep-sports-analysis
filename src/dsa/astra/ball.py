@@ -58,7 +58,7 @@ def sample(n: int, seed: int = 0) -> list[dict]:
     for game in TEST_GAMES:
         for clip in sorted((ROOT / game).iterdir()):
             labels = pd.read_csv(clip / "Label.csv")
-            names = labels.file_name.tolist()
+            names = labels["file name"].tolist()
             for i in range(1, len(labels) - 1):
                 r = labels.iloc[i]
                 rows.append({"clip": str(clip), "prev": names[i - 1], "file": names[i], "next": names[i + 1],

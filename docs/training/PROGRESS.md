@@ -16,7 +16,7 @@ on a score table plus the worst misses.
 - [ ] Download TennisCourtDetector, TrackNet tennis, RacketVision (COCO-WholeBody val: done)
 - [ ] Label format and converters (TrackNet, TennisCourtDetector)
 - [ ] Ball: WASB vs Astra on TrackNet, then confirm
-- [ ] Racket labeler: train on RacketVision; score it and Astra, then confirm
+- [x] Racket: RacketVision's released RTMDet + RTMPose vs Astra on 39 test-split rackets: PCK@0.1 of racket length 93% (labelled box) / 81% (own detector) vs Astra 58%. Use RacketVision's model; no training needed
 - [ ] Court labeler: fine-tune on TennisCourtDetector
 - [ ] Court: Astra vs court labeler on TennisCourtDetector, then confirm
 - [ ] Events: Astra vs event labeler on TrackNet (+ E2E-Spot), then confirm

@@ -120,9 +120,22 @@ Error is relative to racket length (tip to handle; median 64 px in 1080p).
 |---|---|---|---|---|
 | Astra, medium effort | 0.126 | 58% | 83% | 61% |
 | box centre (baseline) | 0.342 | 13% | 21% | 13% |
+| RacketVision RTMPose-M on the labelled box | 0.048 | 93% | 97% | 96% |
+| RacketVision RTMDet-M + RTMPose-M, full frame | 0.055 | 81% | 89% | 84% |
+
+RacketVision's released model (`dsa.cloud.racket_pose`, one L4 on Modal) on
+the same 39 rackets, all in its test split. Full frame: its detector found 36
+of 39 (IoU >= 0.1 at score >= 0.3); the 3 misses count as 0 PCK, and mean error
+is over the found ones. Median error per point on the labelled box: tip 0.022,
+head bottom 0.017, handle 0.026, left 0.026, right 0.038, a third of Astra's.
 
 Median error per point: tip 0.067, head bottom 0.068, handle 0.098, left
 0.102, right 0.109. Every point is 6-7 px from its label at this size, so
 PCK@0.1 is tight. Even the worst crops have Astra on the right racket with the
 right orientation; the misses are offsets along the shaft or a flipped head
 width. 39 rackets is a small sample.
+
+RacketVision's model is the racket labeler: about 2 px error against Astra's
+6-7 px, milliseconds against 22 s, and it needs no training. Its detector
+misses 8% of rackets; Astra stays the fallback for those and for our footage
+until the gold set checks both.

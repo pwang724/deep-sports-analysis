@@ -1,7 +1,7 @@
 .venv/
-data/
-models/
-output/
+/data
+/models
+/output
 *.mp4
 *.mkv
 *.webm
