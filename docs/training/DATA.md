@@ -46,17 +46,25 @@ bulk downloading.
 
 ## Labelers
 
-| Head | Labeler | Notes |
-|---|---|---|
-| people, body joints | RF-DETR Medium + ByteTrack + ViTPose-Plus-Huge (built, `dsa.pose`) | Run at 5-10 fps; interpolate. |
-| neck | shoulder midpoint of the ViTPose labels | |
-| feet | Astra on sparse keyframes if it passes phase 0; else RTMPose-Halpe26 | |
-| racket | model trained on RacketVision; chosen in phase 0 | Assigned to the nearest wrist. |
-| court | court keypoint model fine-tuned on TennisCourtDetector (PLAN step 3) | Keep labels only with 4+ confident points and low reprojection error. |
-| ball | WASB tennis weights | Labels for the ball head, and its fallback; the track also feeds the event labels. |
-| events | audio onsets + wrist speed + ball direction change, checked by Astra | E2E-Spot weights as a second opinion. |
-| stroke type | Astra on a strip of frames around each hit | See below. |
-| view, in play | Astra on contact sheets; existing manifests | |
+Chosen in phase 0 on public ground truth; scores in
+[RESULTS-training.md](../RESULTS-training.md), sign-offs in
+[PROGRESS.md](PROGRESS.md).
+
+| Head | Labeler | Why | Status |
+|---|---|---|---|
+| person boxes | RF-DETR Medium @ 1152 + ByteTrack (`dsa.pose`) | ties Astra (100% recall), 1000x faster | confirmed |
+| body joints | ViTPose-Plus-Huge on each box | 0.818 OKS vs Astra 0.743 | confirmed |
+| neck | shoulder midpoint of ViTPose | no model needed | confirmed |
+| head top | Halpe training data only | no labeler; checked in the gold set | confirmed |
+| feet | Astra on sparse keyframes, left / right taken from the nearest ViTPose ankle | 0.870 OKS; no open 6-foot-point model we run | confirmed |
+| racket | RacketVision RTMDet-M + RTMPose-M (released weights); racket assigned to the nearest ViTPose wrist; Astra where the detector misses | PCK@0.1 81% end to end vs Astra 58%; wrist / person boxes worse | confirmed |
+| ball | WASB tennis weights; Astra checks frames where they disagree | F1@4px 0.886 vs Astra 0.691 | confirmed |
+| stroke type, coarse | Astra on the frame | 99 / 100 | confirmed |
+| view | Astra, one frame | 99 / 100 under the agreed definition | provisional: gold set scores it |
+| in play | Astra, 4-frame sheet | 83% vs padded cut lists | provisional: gold set scores it |
+| court | court keypoint model fine-tuned on TennisCourtDetector vs Astra | | to test |
+| events | audio onsets + wrist speed + ball direction change vs Astra; E2E-Spot as second opinion | | to test |
+| stroke type, fine | Astra on a strip around each hit vs F3Set | | to test |
 
 Labels from two labelers that agree get high confidence; disagreements get low
 weight and go into the review queue.

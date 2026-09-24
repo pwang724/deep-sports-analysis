@@ -6,6 +6,7 @@ on a score table plus the worst misses.
 ## Phase 0: choose a labeler per task (public ground truth)
 
 - [x] Training plan, model and data docs
+- [ ] Move data/, output/, models/ to PW_SSD (symlinks in the repo)
 - [x] Astra harness: `codex exec` wrapper, output schemas, cache (`dsa.astra`)
 - [x] Joints: Astra vs ViTPose on Tennis Player Actions. Confirmed: ViTPose (0.818 vs 0.743 OKS, 100 images)
 - [x] Neck: shoulder midpoint from ViTPose, no model. Head top: Halpe training data only, checked in the gold set
@@ -13,10 +14,10 @@ on a score table plus the worst misses.
 - [x] Person boxes: Astra vs RF-DETR on TennisSegmentation, 100 frames: tie (100% recall, IoU 0.88-0.90 both). Confirmed: RF-DETR
 - [x] Stroke type, coarse: Astra on Tennis Player Actions: 99% (99 / 100). Confirmed: Astra
 - [x] View / in play definitions agreed: view = camera behind a baseline, any height, whole court; in play = serve toss to end of rally. Astra labels both provisionally; strict scoring in the gold set
-- [ ] Download TennisCourtDetector, TrackNet tennis, RacketVision (COCO-WholeBody val: done)
+- [x] Download TrackNet tennis, TennisCourtDetector (labels + 100 val images unpacked), RacketVision (3 test matches), E2E-Spot / F3Set test videos, COCO-WholeBody val
 - [ ] Label format and converters (TrackNet, TennisCourtDetector)
 - [x] Ball: WASB vs Astra on TrackNet, 100 frames: F1@4px 0.886 vs 0.691, @10px 0.962 vs 0.933. Confirmed: WASB; Astra checks disagreements
-- [x] Racket: RacketVision's released RTMDet + RTMPose vs Astra on 39 test-split rackets: PCK@0.1 of racket length 93% (labelled box) / 81% (own detector) vs Astra 58%. Use RacketVision's model; no training needed
+- [x] Racket: RacketVision's released RTMDet + RTMPose vs Astra on 39 test-split rackets: PCK@0.1 of racket length 93% (labelled box) / 81% (own detector) vs Astra 58%. Use RacketVision's model; no training needed. Boxes from wrists (74% found) or person boxes (18%) lose to its detector (92%); wrists assign rackets to players
 - [ ] Court labeler: fine-tune on TennisCourtDetector
 - [ ] Court: Astra vs court labeler on TennisCourtDetector, then confirm
 - [ ] Events: Astra vs event labeler on TrackNet (+ E2E-Spot), then confirm
