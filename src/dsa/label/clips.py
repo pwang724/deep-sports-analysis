@@ -26,7 +26,9 @@ Per clip:
              re-acquires a lost player unambiguously (link_players) (at most 2; people.named is Astra's own call
              on keyframes); head top on keyframes only.
   ball       WASB on t-1, t, t+1, every in-scope frame.
-  court      per shot, the per-point median of Astra's keyframe answers,
+  court      per shot, the per-point median of Astra's keyframe answers, each
+             first snapped to the painted lines (dsa.label.court_refine; kept
+             as is where the snap fails),
              written on every in-scope frame of the shot (keyframe rows keep
              their own answer in court.kf_kp, for dsa.label.consistency).
   scene      view and singles on every frame with a keyframe in its shot (from
@@ -72,6 +74,8 @@ from dsa.astra.court import diagram
 from dsa.data import schema
 from dsa.data.paths import DATA, RAW, SCRATCH, VIDEOS
 from dsa.astra.codex import NotCached
+from dsa.label.codex_free import players_rule
+from dsa.label.court_refine import refine
 from dsa.label.prefill import (ASTRA, PEOPLE, RACKETS, WASB, astra_scene, draw_boxes, head_top_rule, players,
                                   sheet_image)
 
@@ -633,6 +637,15 @@ def finish_clip(st: dict, cost: Cost) -> tuple[dict[str, list], dict[str, list]]
     shots, keys, fps = info["shots"], info["keys"], clip["fps"]
     kshot = {k: shot_of(shots, k) for k in keys}
     people = {k: items[k]["people"] for k in keys if scope.get(k) == "view"}
+    for k in people:                      # Astra's court snapped to the painted lines; kept as is where the snap fails
+        sc = scenes[k]
+        if sc["court"] is not None and "court_astra" not in sc:
+            sc["court_astra"] = sc["court"]
+            r = refine(cv2.imread(str(items[k]["frame_path"])), sc["court"])
+            sc["snapped"] = r is not None
+            if r is not None:
+                sc["court"] = np.column_stack([r["points"], sc["court"][:, 2]])
+        sc["rule"] = players_rule(people[k], sc["court"]) if sc["court"] is not None else []
     people.update(zip(st["todo"], st["people"].get()))
     by_frame = dict(st["dets"] or {})
     for chunk, call in st["racket_calls"]:
@@ -694,7 +707,9 @@ def finish_clip(st: dict, cost: Cost) -> tuple[dict[str, list], dict[str, list]]
                 stack = np.stack([scenes[j]["court"] for j in ks])
                 court = np.column_stack([np.median(stack[:, :, :2], 0),
                                          np.where((stack[:, :, 2] > 0).mean(0) >= 0.5, 2.0, 0.0)])
-                rows["court"].append({"sample": s, "kp": schema.flat(court), "labeler": ASTRA,
+                snapped = sum(scenes[j].get("snapped", False) for j in ks)
+                rows["court"].append({"sample": s, "kp": schema.flat(court),
+                                      "labeler": ASTRA + f"; snapped to lines ({snapped}/{len(ks)} keyframes)",
                                       "kf_kp": schema.flat(scenes[f]["court"]) if f in ks else None})
                 heads.append("court")
         if f in labelled:
@@ -710,6 +725,7 @@ def finish_clip(st: dict, cost: Cost) -> tuple[dict[str, list], dict[str, list]]
                                        "box": schema.flat(p["box"]), "kp": kp, "stroke": None,
                                        "player": tid in player_tracks[sh],
                                        "named": (i in scenes[f]["chosen"]) if f in keys else None,
+                                       "rule": (i in scenes[f]["rule"]) if f in keys and "rule" in scenes[f] else None,
                                        "labeler": PEOPLE + "; head top: rule",
                                        "_score": p["score"]})
             if st["dets"] is not None:
@@ -881,12 +897,12 @@ def main() -> None:
         r["kp"] = schema.flat(r["kp"])
         r.pop("_score")
     tables = {"frames": pd.DataFrame(rows["frames"]),
-              "people": pd.DataFrame(rows["people"], columns=schema.TABLES["people"] + ["player", "named"]),
+              "people": pd.DataFrame(rows["people"], columns=schema.TABLES["people"] + ["player", "named", "rule"]),
               "rackets": pd.DataFrame(rows["rackets"], columns=schema.TABLES["rackets"]),
               "ball": pd.DataFrame(rows["ball"], columns=schema.TABLES["ball"]),
               "court": pd.DataFrame(rows["court"], columns=schema.TABLES["court"] + ["kf_kp"]),
               "scene": pd.DataFrame(rows["scene"], columns=schema.TABLES["scene"] + ["singles"])}
-    for t, c in (("scene", "view"), ("scene", "in_play"), ("scene", "singles"), ("people", "named")):
+    for t, c in (("scene", "view"), ("scene", "in_play"), ("scene", "singles"), ("people", "named"), ("people", "rule")):
         tables[t][c] = tables[t][c].astype("boolean")
     out = schema.write(a.out, tables)
     report = timer.report()

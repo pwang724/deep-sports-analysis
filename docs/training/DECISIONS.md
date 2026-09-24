@@ -154,3 +154,19 @@ the head trained on TrackNet + RacketVision scores F1 0.950 on TrackNet test
 (WASB 0.957) and 0.926 on unseen RacketVision matches (WASB 0.864), and
 misses 401 visible balls to WASB's 370 (TrackNet only: 766). Labels are not
 shifted to one convention. Numbers: RESULTS-training, "More epochs vs more data".
+
+## 13. Court snapped to the painted lines; player rule checks Astra (2026-09-24)
+
+Every keyframe's Astra court is snapped to the white lines
+(dsa.label.court_refine) before the per-shot median; a failed snap keeps
+Astra's points. On TCD val this takes Astra from 96.7% to 99.7% of points
+within 7 px, at no Codex cost. On clips_v1, 304 of 406 view keyframes
+snap, and the court consistency filters mask less: unstable 1.5% -> 0.5%,
+homography 2.5% -> 1.4%.
+
+Players: a Codex-free rule (one person per half in the playing area,
+nearest the centre line, on the snapped court) runs on every keyframe.
+Where it and Astra disagree on a track, the track's player flag becomes
+unknown (consistency "players rule", 9.4% of player rows). The rule picks
+the right pair on 99% of TennisSegmentation frames. The same person is
+picked by both on 96% of keyframe people.

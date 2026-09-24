@@ -24,6 +24,9 @@ kept, so the video review can show what was dropped.
   players  choice       a track Astra named on some keyframes and not on others, by a
                         close vote (dsa.label.clips takes the majority)
            outside      a named player standing outside the playing area
+           rule         Astra's player choice for a track disagrees with the majority
+                        of dsa.label.codex_free.players_rule on its keyframes (86%
+                        agreement on clips_v1; 99% right on TennisSegmentation)
            track lost   a player is missing on a frame and someone else in the
                         playing area stands where the player was within
                         REACQ_S: that person might be the player, so their
@@ -296,6 +299,11 @@ def check_players(people: pd.DataFrame, court: pd.DataFrame, fr: pd.DataFrame, f
             yes = int(tg["named"].astype(bool).sum())
             if 0 < yes < len(tg) and abs(2 * yes - len(tg)) <= CHOICE_MARGIN:
                 mask.update((i, "choice") for i in g.index[g["track"] == t])
+        if "rule" in kf:                  # the Codex-free rule (one per half, nearest the centre line) disagrees
+            for t, tg in kf[kf["rule"].notna()].groupby("track"):
+                rule = 2 * int(tg["rule"].astype(bool).sum()) > len(tg)
+                if rule != bool(g.loc[g["track"] == t, "player"].fillna(False).any()):
+                    mask.update((i, "rule") for i in g.index[g["track"] == t])
         for i, r in kf[kf["named"].fillna(False).astype(bool)].iterrows():
             if r["sample"] in courts and not box_in_area(r.box, courts[r["sample"]]):
                 mask.update((j, "outside") for j in g.index[g["track"] == r["track"]])
@@ -361,7 +369,7 @@ def check_scene(scene: pd.DataFrame, ball: pd.DataFrame, court: pd.DataFrame, fr
 
 CHECKS = [("ball", "isolated"), ("ball", "off track"), ("ball", "static"), ("pose", "flip"), ("pose", "spike"),
           ("head top", "head top"), ("court", "unstable"), ("court", "homography"), ("court", "camera moved"),
-          ("players", "choice"), ("players", "outside"), ("players", "track lost"), ("view", "shot"),
+          ("players", "choice"), ("players", "outside"), ("players", "rule"), ("players", "track lost"), ("view", "shot"),
           ("view", "no court"), ("in_play", "no ball")]
 
 
