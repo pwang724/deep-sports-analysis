@@ -4,7 +4,9 @@ Serves one page (review.html) on localhost. Each frame shows every pre-filled
 label on the image; drag points to correct them, toggle visibility, fix the
 ball, court, view and in play, then save. Each save writes one JSON file per
 frame to data/gold/<version>/reviewed/, so progress survives restarts and
-nothing is overwritten in bulk. `export` turns the reviewed files into the
+nothing is overwritten in bulk. Frames that are not an analysis view (close-ups,
+replays, cut-off courts; Astra's view flag) are kept only as a small share
+(--nonview-share of the view frames, seeded) and carry only view and in play. `export` turns the reviewed files into the
 labels source gold_<version> (labeler "human:peter").
 
     python -m dsa.label.review serve --version v1 --prefill gold_v1_prefill
@@ -53,8 +55,16 @@ def reviewed_path(version: str, sample: str) -> Path:
     return GOLD / version / "reviewed" / (sample.replace("/", "__") + ".json")
 
 
-def serve(version: str, prefill: str, port: int) -> None:
+def subset(frames: pd.DataFrame, labels: dict[str, dict], share: float, seed: int = 0) -> pd.DataFrame:
+    """All view frames plus non-view frames up to `share` of their number, in the original order."""
+    view = frames["sample"].map(lambda s: labels[s]["view"] is not False)
+    other = frames[~view].sample(frac=1, random_state=seed).head(int(round(share * view.sum())))
+    return frames[view | frames.index.isin(other.index)]
+
+
+def serve(version: str, prefill: str, port: int, share: float) -> None:
     frames, labels = load_prefill(prefill)
+    frames = subset(frames, labels, share)
     rows = frames.to_dict("records")
     index = [{"sample": r["sample"], "collection": r.get("collection"), "camera": r.get("camera"),
               "width": r["width"], "height": r["height"]} for r in rows]
@@ -148,6 +158,9 @@ def export(version: str, prefill: str) -> None:
         keep.append(s)
         lab = body["labels"]
         nan = lambda v: np.nan if v is None else v
+        scene.append({"sample": s, "view": lab.get("view"), "in_play": lab.get("in_play"), "labeler": REVIEWER})
+        if lab.get("view") is False:
+            continue            # not an analysis view: only the scene is labelled
         for i, p in enumerate(lab["people"]):
             people.append({"sample": s, "person": i, "track": None, "box": [nan(v) for v in p["box"]],
                            "kp": [nan(v) for v in p["kp"]], "stroke": None, "player": p.get("player", False),
@@ -158,7 +171,6 @@ def export(version: str, prefill: str) -> None:
                          "labeler": REVIEWER})
         if lab.get("court") is not None:
             court.append({"sample": s, "kp": [nan(v) for v in np.ravel(lab["court"])], "labeler": REVIEWER})
-        scene.append({"sample": s, "view": lab.get("view"), "in_play": lab.get("in_play"), "labeler": REVIEWER})
     f = frames[frames["sample"].isin(keep)]
     out = schema.write(f"gold_{version}", {
         "frames": f,
@@ -175,8 +187,10 @@ def main() -> None:
     p.add_argument("--version", default="v1")
     p.add_argument("--prefill", required=True)
     p.add_argument("--port", type=int, default=8770)
+    p.add_argument("--nonview-share", type=float, default=0.1,
+                   help="non-view frames kept, as a share of the view frames")
     a = p.parse_args()
-    serve(a.version, a.prefill, a.port) if a.command == "serve" else export(a.version, a.prefill)
+    serve(a.version, a.prefill, a.port, a.nonview_share) if a.command == "serve" else export(a.version, a.prefill)
 
 
 if __name__ == "__main__":
