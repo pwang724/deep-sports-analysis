@@ -107,3 +107,22 @@ With the agreed definitions (view: behind a baseline at any height; in play:
 serve toss to end of rally), 14 of the 15 view disagreements are the low
 end-on camera, now correct; one is a court-level corner view Astra wrongly
 accepted.
+
+## Racket: Astra on RacketVision (2026-09-23)
+
+RacketVision tennis, the 3 matches downloaded: every racket with the tip,
+handle and at least 4 of 5 points labelled (39). Each gets a 360 px crop that
+contains the racket at a random offset, upscaled to 768 (`dsa.astra.racket`).
+Error is relative to racket length (tip to handle; median 64 px in 1080p).
+22 s per call.
+
+| labeler | mean error | PCK@0.1 | PCK@0.2 | PCK@0.1, left/right either way |
+|---|---|---|---|---|
+| Astra, medium effort | 0.126 | 58% | 83% | 61% |
+| box centre (baseline) | 0.342 | 13% | 21% | 13% |
+
+Median error per point: tip 0.067, head bottom 0.068, handle 0.098, left
+0.102, right 0.109. Every point is 6-7 px from its label at this size, so
+PCK@0.1 is tight. Even the worst crops have Astra on the right racket with the
+right orientation; the misses are offsets along the shaft or a flipped head
+width. 39 rackets is a small sample.
