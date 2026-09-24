@@ -90,6 +90,8 @@ Dylan cut lists for in play (`dsa.astra.view_play` docstring has the sampling).
 | view (USO keep vs discard) | 87% | 0 / 50 | 13 / 50 |
 | in play, first prompt | 76% | 16 / 50 | 8 / 50 |
 | in play, main court only | 82% | 16 / 50 | 2 / 50 |
+| view, agreed definition (any height) | 85%; 99% counting low end-on as usable | 0 / 50 | 15 / 50 |
+| in play, agreed definition (strict) | 83% | 16 / 50 | 1 / 50 |
 
 View: all 13 disagreements are the low end-on camera, which the USO recipe
 discarded for that clip. Astra called it usable. Our phone footage is a low
@@ -100,3 +102,8 @@ main court fixed 6 of 8 false yeses. Most remaining "truth yes, Astra no"
 cases viewed show walking, ball bouncing before a serve or an empty court:
 the cut windows are padded activity edits, not ball-in-play spans. The cut
 lists cannot score a strict in-play label; the gold set must.
+
+With the agreed definitions (view: behind a baseline at any height; in play:
+serve toss to end of rally), 14 of the 15 view disagreements are the low
+end-on camera, now correct; one is a court-level corner view Astra wrongly
+accepted.

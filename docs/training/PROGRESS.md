@@ -12,7 +12,7 @@ on a score table plus the worst misses.
 - [x] Feet: Astra on COCO-WholeBody val, 100 people: 0.787 OKS, 0.870 with left / right swaps fixed by nearest ViTPose ankle. Confirmed: Astra + ankle side fix
 - [x] Person boxes: Astra vs RF-DETR on TennisSegmentation, 100 frames: tie (100% recall, IoU 0.88-0.90 both). Confirmed: RF-DETR
 - [x] Stroke type, coarse: Astra on Tennis Player Actions: 99% (99 / 100). Confirmed: Astra
-- [ ] View / in play, provisional: view 100% if low end-on counts as usable; in play 82% vs padded cut windows, mostly label looseness. Awaiting definitions
+- [x] View / in play definitions agreed: view = camera behind a baseline, any height, whole court; in play = serve toss to end of rally. Astra labels both provisionally; strict scoring in the gold set
 - [ ] Download TennisCourtDetector, TrackNet tennis, RacketVision (COCO-WholeBody val: done)
 - [ ] Label format and converters (TrackNet, TennisCourtDetector)
 - [ ] Ball: WASB vs Astra on TrackNet, then confirm

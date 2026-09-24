@@ -6,6 +6,8 @@ Neither label is exact ground truth; both are the best reviewed labels we have:
            camera, discard = everything else (other angles, close-ups, crowd,
            graphics). Method output tuned and inspected on this clip; `review`
            shots are excluded, and so are frames within 0.5 s of a shot edge.
+           Our definition also counts the low end-on camera as usable (it is
+           the phone view); the USO recipe discarded it, so those disagree.
   in play  Richard / Dylan phone recordings, `cuts.json`: frames at least 2 s
            inside a retained activity window are in play; frames at least 3 s
            from any window are not. Windows keep some short resets, so a few
@@ -36,19 +38,20 @@ PHONE = "output/preprocess/desktop_tennis"
 SCHEMA = {"type": "object", "properties": {"answer": {"type": "boolean"}},
           "required": ["answer"], "additionalProperties": False}
 VIEW_PROMPT = (
-    "The attached frame is from a tennis broadcast. Is it the main analysis view: a high camera "
-    "behind one baseline, looking down the length of the court, with the whole court and both "
-    "players' positions in view? Answer false for any other angle (court-level, side-on, low "
-    "end-on), close-ups, replays zoomed on part of the court, crowd, stadium overviews and "
-    "graphics. Look at the image directly; do not run any commands."
+    "The attached frame is from a tennis video. Is it a usable analysis view: a camera behind one "
+    "baseline, at any height, looking down the length of the court, with the whole court and both "
+    "players' positions in view? Answer false for side-on or other angles, close-ups, replays zoomed "
+    "on part of the court, crowd, stadium overviews and graphics. Look at the image directly; do "
+    "not run any commands."
 )
 PLAY_PROMPT = (
     "The attached sheet shows four frames of a phone recording of a tennis session, 0.5 s apart, "
     "in reading order (time in the corner). Consider only the main court in view, the one whose "
     "baseline is nearest the camera; ignore anyone on neighbouring courts. Is tennis being played "
     "on that court at this moment: a serve being hit, or a rally under way, including warm-up "
-    "rallies? Answer false when its players are collecting balls, walking, changing ends, resting "
-    "or otherwise waiting between points, or when the court is empty. "
+    "rallies? A point runs from the serve toss to the end of the rally. Answer false when its "
+    "players are collecting balls, walking, bouncing the ball before a serve, changing ends, "
+    "resting or otherwise waiting between points, or when the court is empty. "
     "Look at the image directly; do not run any commands."
 )
 
