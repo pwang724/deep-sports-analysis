@@ -9,8 +9,9 @@ labels source with the same samples, ready for the review tool:
   scene    Astra in the same call: view (behind a baseline, any height, whole
            court) and in play (serve toss to end of rally), with a 2 x 2 sheet
            of frames 0.5 s apart for in play.
-  feet     Astra, one call per frame with a crop per player: 6 foot points and
-           head top; each foot takes its side from the nearest ViTPose ankle.
+  head top Astra, one call per frame with a crop per player. The same call
+           returns 6 foot points (side from the nearest ViTPose ankle); they
+           are deferred (FEET = False) and left unlabelled.
            Players are the boxes Astra names in the scene call (shown the frame
            with numbered boxes); if it names none, up to 4 people in the playing
            area (court + 8 m behind the baselines, 3.5 m beside, not the
@@ -44,6 +45,9 @@ WASB = "wasb-tennis"
 RACKETS = "racketvision-rtmdet-m+rtmpose-m"
 FOOT_KEYS = ["l_ankle", "r_ankle", "l_big_toe", "l_small_toe", "l_heel", "r_big_toe", "r_small_toe", "r_heel",
              "head_top"]
+# Feet are deferred: off by several pixels on broadcast-size players, so they stay unlabelled (NaN).
+# Astra still returns them in the head-top call and they are cached, so turning this on costs nothing.
+FEET = False
 METRE = 1117 / 10.97            # reference-court units per metre (dsa.astra.court REF)
 
 POINT = {"type": "object", "properties": {"x": {"type": "number"}, "y": {"type": "number"}},
@@ -288,11 +292,12 @@ def main() -> None:
             kp[:17] = np.column_stack([person["xy"], vis])
             kp[schema.KP["neck"]] = [*((person["xy"][5] + person["xy"][6]) / 2), min(vis[5], vis[6])]
             if i in ft:
-                for name, key in (("left_big_toe", "l_big_toe"), ("left_small_toe", "l_small_toe"),
-                                  ("left_heel", "l_heel"), ("right_big_toe", "r_big_toe"),
-                                  ("right_small_toe", "r_small_toe"), ("right_heel", "r_heel"),
-                                  ("head_top", "head_top")):
-                    kp[schema.KP[name]] = [*ft[i][key], 2.0]
+                kp[schema.KP["head_top"]] = [*ft[i]["head_top"], 2.0]
+                if FEET:
+                    for name, key in (("left_big_toe", "l_big_toe"), ("left_small_toe", "l_small_toe"),
+                                      ("left_heel", "l_heel"), ("right_big_toe", "r_big_toe"),
+                                      ("right_small_toe", "r_small_toe"), ("right_heel", "r_heel")):
+                        kp[schema.KP[name]] = [*ft[i][key], 2.0]
             kps[i] = kp
         # Each racket to the player whose wrist is nearest its handle.
         for r, det in enumerate(rk):
@@ -312,7 +317,7 @@ def main() -> None:
         for i, person in enumerate(it["people"]):
             people_rows.append({"sample": s, "person": i, "track": None, "box": schema.flat(person["box"]),
                                 "kp": schema.flat(kps[i]), "stroke": None, "player": i in ch,
-                                "labeler": PEOPLE + (f"; feet, head top: {ASTRA}" if i in ft else "")
+                                "labeler": PEOPLE + (f"; {'feet, ' if FEET else ''}head top: {ASTRA}" if i in ft else "")
                                 + ("; racket: " + RACKETS if not np.isnan(kps[i][25, 0]) else "")})
         vis, x, y = it["ball"]
         ball_rows.append({"sample": s, "x": x if vis else np.nan, "y": y if vis else np.nan, "visible": vis,

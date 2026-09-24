@@ -10,7 +10,7 @@ on a score table plus the worst misses.
 - [x] Astra harness: `codex exec` wrapper, output schemas, cache (`dsa.astra`)
 - [x] Joints: Astra vs ViTPose on Tennis Player Actions. Confirmed: ViTPose (0.818 vs 0.743 OKS, 100 images)
 - [x] Neck: shoulder midpoint from ViTPose, no model. Head top: Astra, in the same call as the feet; checked in the gold set
-- [x] Feet: Astra on COCO-WholeBody val, 100 people: 0.787 OKS, 0.870 with left / right swaps fixed by nearest ViTPose ankle. Confirmed: Astra + ankle side fix
+- [x] Feet: Astra on COCO-WholeBody val, 100 people: 0.787 OKS, 0.870 with left / right swaps fixed by nearest ViTPose ankle. Confirmed: Astra + ankle side fix. **Deferred 2026-09-23**: several px off on broadcast-size players in the smoke review; feet left unlabelled for now
 - [x] Person boxes: Astra vs RF-DETR on TennisSegmentation, 100 frames: tie (100% recall, IoU 0.88-0.90 both). Confirmed: RF-DETR
 - [x] Stroke type, coarse: Astra on Tennis Player Actions: 99% (99 / 100). Confirmed: Astra
 - [x] View / in play definitions agreed: view = camera behind a baseline, any height, whole court; in play = serve toss to end of rally. Astra labels both provisionally; strict scoring in the gold set

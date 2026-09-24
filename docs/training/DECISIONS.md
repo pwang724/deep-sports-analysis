@@ -30,7 +30,7 @@ our own footage in the gold set (phase 1).
 | Body joints (17) | ViTPose-Plus-Huge | 0.818 OKS | Astra 0.743 | better, most of all mid-swing (forehand 0.81 vs 0.69) |
 | Neck | shoulder midpoint of ViTPose | | | no model needed |
 | Head top | Astra, in the same call as the feet | not scored (no head-top labels downloaded) | | a simple point; checked in the gold set |
-| Feet (6) | Astra, left / right from the nearest ViTPose ankle | 0.870 OKS (0.787 before the side fix) | ankle copy 0.485 | no foot model we run; 10 of 100 swaps are the whole loss |
+| Feet (6) | **Deferred** (left unlabelled) | 0.870 OKS on COCO photos (0.787 before the side fix) | ankle copy 0.485 | on broadcast players (shoe ~15 px) Astra is several px off, e.g. heel placed at the ankle; not needed yet. Astra still returns them, cached, for later |
 | Racket (5) | RacketVision RTMDet-M + RTMPose-M | 81% of points within 0.1 racket length | Astra 58% (given a crop) | 2 px vs 6-7 px error; no training needed |
 | Ball | WASB (tennis weights) | F1 0.886 @ 4 px, 0.962 @ 10 px | Astra 0.691, 0.933 | more precise, fewer false balls (2 vs 5 of 20) |
 | Court (14) | Astra, one keyframe per camera shot | 96.7% within 7 px, median 2.2 px | TennisCourtDetector 95.6%, 1.9 px | tie; Astra's worst point is 17 px, TCD lost points on an angled camera |
@@ -49,7 +49,9 @@ our own footage in the gold set (phase 1).
 per foot) and 5 racket points (tip, head bottom, handle, left and right of the
 head). Feet give stance and split step, the racket gives swing path and
 contact, the head gives gaze and balance. Neck needs no labeler; head top is
-labelled by Astra in the feet call and checked in the gold set.
+labelled by Astra in the feet call and checked in the gold set. Feet are
+deferred (2026-09-23): the slots stay in the format but are unlabelled (NaN,
+masked) until a labeler holds up at broadcast scale.
 
 ## 4. Specialists over Astra for geometry, Astra for judgment (2026-09-23)
 
