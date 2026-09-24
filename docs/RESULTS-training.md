@@ -176,3 +176,20 @@ only one was far off (117 px, a different object). It loses to WASB on
 precision at 4 px and on empty frames. WASB stays the ball labeler: better,
 and milliseconds per frame against 16 s. Astra can check WASB where the two
 disagree.
+
+## Court: Astra vs TennisCourtDetector (2026-09-23)
+
+TennisCourtDetector val split (held out from its training), 100 frames of
+1280 x 720 broadcast, 14 line intersections each; 1,394 labelled points in
+frame (`dsa.astra.court`). TCD is its released model with both of its
+post-processing steps (line refinement, homography fit). Astra gets the frame
+and a numbered court diagram; it ran no code (checked in the Codex event log).
+
+| labeler | within 7 px | within 15 px | median error | frames with every point within 15 px | time |
+|---|---|---|---|---|---|
+| TennisCourtDetector | 95.6% | 97.9% | 1.9 px | 97 | ms (MPS) |
+| Astra, medium effort | 96.7% | 99.9% | 2.2 px | 98 | 22 s |
+
+A tie; TCD matches its published 1.83 px. TCD's two worst frames are an
+angled Indian Wells camera where it loses points entirely; Astra's worst
+point in 100 frames is 17 px off. Worst frames: `output/astra_eval/court/worst.jpg`.
