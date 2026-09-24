@@ -27,7 +27,13 @@ Model
             the visibility logit is scored too.
 
 Data: TrackNet games 1-7 train, 8-10 test (WASB's split), read straight from
-each clip's Label.csv. Visibility 1, 2 = ball, 0 = none, 3 (occluded, 82
+each clip's Label.csv. Optionally RacketVision tennis (`rv=True`): one 10 s
+rally from each of 431 broadcast matches, 50 human-labelled frames per rally,
+its own train / val / test split by match (only train is trained on, test is
+scored alongside). `dsa.cloud.train_ball.prepare_rv` extracts each labelled
+frame and its neighbours at 1280 x 720 into <root>/rv/<match>_<rally>/ with
+an index.csv; the neighbours are +-1 frame at 25 / 30 fps and +-2 at 60 fps,
+so the motion between the three frames is about TrackNet's (30 fps). Visibility 1, 2 = ball, 0 = none, 3 (occluded, 82
 frames) is left out of the loss. At clip edges the missing neighbour repeats
 frame t. Train augmentation, identical on the three frames: flip, scale 0.75-
 1.25 with shift, brightness / contrast.
@@ -39,6 +45,7 @@ negative, so a far detection is both. Every test frame is scored.
 
     modal run src/dsa/cloud/train_ball.py                  # train + evaluate on Modal
     python -m dsa.train.ball_fusion wasb                   # WASB on the same full test set, locally
+    python -m dsa.train.ball_fusion wasb --rv-test --root <dir holding rv/> --out ...   # RacketVision test
 """
 from __future__ import annotations
 
@@ -58,6 +65,8 @@ from torch import nn
 TRAIN_GAMES = tuple(f"game{i}" for i in range(1, 8))
 TEST_GAMES = ("game8", "game9", "game10")
 W, H, H_PAD, STRIDE = 1280, 720, 736, 4
+RESUME_WARM = 200        # LR ramp after resuming from weights only (fresh AdamW moments)
+WARM_STEPS = 30          # benchmark timing starts after these (loader workers and cudnn warm up)
 MEAN = np.array([0.485, 0.456, 0.406], np.float32)
 STD = np.array([0.229, 0.224, 0.225], np.float32)
 
@@ -79,6 +88,13 @@ def load_items(root: Path, games: tuple[str, ...]) -> pd.DataFrame:
                              "next": names[min(i + 1, n - 1)], "vis": int(r[1]),
                              "x": float(r[2]) if r[1] else np.nan, "y": float(r[3]) if r[1] else np.nan})
     return pd.DataFrame(rows)
+
+
+def load_rv_items(root: Path, split: str) -> pd.DataFrame:
+    """RacketVision rows (index.csv from prepare_rv), same columns as load_items; clip = rv/<match>_<rally>."""
+    idx = pd.read_csv(root / "rv" / "index.csv", dtype={"prev": str, "file": str, "next": str})
+    idx = idx[idx.split == split]
+    return idx[["clip", "prev", "file", "next", "vis", "x", "y"]].reset_index(drop=True)
 
 
 def heatmap_target(x: float, y: float, sigma: float = 1.0) -> np.ndarray:
@@ -108,8 +124,7 @@ class BallFrames(torch.utils.data.Dataset):
         vis, x, y = int(it.vis), float(it.x), float(it.y)
         if self.train:
             imgs, x, y, vis = self._augment(imgs, x, y, vis)
-        img = np.concatenate([(im.astype(np.float32) / 255.0 - MEAN) / STD for im in imgs], axis=2)
-        img = np.pad(img, ((0, H_PAD - H), (0, 0), (0, 0)))
+        img = np.concatenate(imgs, axis=2)          # uint8, H x W x 3*frames; normalised on the GPU (to_input)
         ball = vis in (1, 2)
         hm = heatmap_target(x, y) if ball else np.zeros((H_PAD // STRIDE, W // STRIDE), np.float32)
         return (torch.from_numpy(img.transpose(2, 0, 1).copy()), torch.from_numpy(hm),
@@ -133,6 +148,19 @@ class BallFrames(torch.utils.data.Dataset):
         a, b = rng.uniform(0.7, 1.3), rng.uniform(-25, 25)
         imgs = [np.clip(im.astype(np.float32) * a + b, 0, 255).astype(np.uint8) for im in imgs]
         return imgs, float(x), float(y), vis
+
+
+def to_input(img: torch.Tensor) -> torch.Tensor:
+    """uint8 B x 3F x H x W from the loader -> normalised float on the GPU, padded to H_PAD.
+
+    Normalising here rather than in the workers moves a quarter of the bytes through the loader (a float32
+    9-channel 1280 x 736 batch of 16 is 540 MB, which starved faster GPUs).
+    """
+    x = img.cuda(non_blocking=True).float().div_(255.0)
+    f = x.shape[1] // 3
+    mean = torch.tensor(MEAN, device=x.device).repeat(f)[None, :, None, None]
+    std = torch.tensor(STD, device=x.device).repeat(f)[None, :, None, None]
+    return F.pad((x - mean) / std, (0, 0, 0, H_PAD - H))
 
 
 # ---------------------------------------------------------------- model
@@ -235,7 +263,7 @@ def summarize(df: pd.DataFrame) -> dict:
     return s
 
 
-def visualize(df: pd.DataFrame, root: Path, out: Path, n: int = 16) -> None:
+def visualize(df: pd.DataFrame, root: Path, out: Path, n: int = 16, prefix: str = "") -> None:
     """Crops around the label (green) and prediction (red): worst misses, false alarms, random."""
     def crop(r, size=160):
         im = cv2.imread(str(root / r.clip / r.file))
@@ -261,7 +289,7 @@ def visualize(df: pd.DataFrame, root: Path, out: Path, n: int = 16) -> None:
             return
         while len(tiles) % 4:
             tiles.append(np.zeros_like(tiles[0]))
-        cv2.imwrite(str(out / name), np.vstack([np.hstack(tiles[i:i + 4]) for i in range(0, len(tiles), 4)]))
+        cv2.imwrite(str(out / (prefix + name)), np.vstack([np.hstack(tiles[i:i + 4]) for i in range(0, len(tiles), 4)]))
 
     lab = df[df.vis.isin([1, 2])].copy()
     lab["miss"] = np.where(lab.score > 0.5, lab.dist.fillna(1e4), 1e4 + (1 - lab.score))
@@ -281,7 +309,7 @@ def predict(model, root: Path, items: pd.DataFrame, frames: int, batch: int, wor
     out = []
     for img, *_, k in dl:
         with torch.autocast("cuda", dtype=torch.bfloat16):
-            hm, vis = model(img.cuda(non_blocking=True))
+            hm, vis = model(to_input(img))
         s, x, y = decode(hm)
         out.append(pd.DataFrame({"k": k.numpy(), "score": s, "px": x, "py": y,
                                  "vis_prob": vis.float().sigmoid().cpu().numpy()}))
@@ -291,14 +319,33 @@ def predict(model, root: Path, items: pd.DataFrame, frames: int, batch: int, wor
 
 
 def train(root: Path, out: Path, frames: int = 3, epochs: int = 12, batch: int = 16, lr: float = 1e-4,
-          workers: int = 12, weights: str | None = None, limit: int | None = None, log=print) -> dict:
+          workers: int = 12, weights: str | None = None, limit: int | None = None, rv: bool = False,
+          rv_train: bool = True, max_steps: int | None = None, resume: bool = False, log=print,
+          on_checkpoint=None) -> dict:
+    """Train, then score the final checkpoint on TrackNet games 8-10 (and RacketVision test when `rv`).
+
+    `max_steps` stops early and returns only timing (the GPU benchmark): seconds per step over the steps
+    after the first WARM_STEPS, and the share of it spent waiting on the data loader. `rv` scores
+    RacketVision test too; `rv_train` (with `rv`) also trains on RacketVision train.
+
+    Each epoch writes last.pt (model weights, as before) and resume.pt (optimizer, epoch, step). `resume`
+    continues from <out>/last.pt after the last finished epoch, on the same LR schedule. Without resume.pt
+    (runs from before it existed) the epoch comes from history.json and AdamW restarts from zero moments,
+    re-warmed with a short linear ramp (RESUME_WARM steps), which the log states.
+    """
     out.mkdir(parents=True, exist_ok=True)
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
     tr, te = load_items(root, TRAIN_GAMES), load_items(root, TEST_GAMES)
+    te_rv = load_rv_items(root, "test") if rv else None
+    if rv and rv_train:
+        tr = pd.concat([tr, load_rv_items(root, "train")], ignore_index=True)
     if limit:
         tr, te = tr.sample(limit, random_state=0), te.sample(min(limit, len(te)), random_state=0)
-    log(f"train {len(tr)} frames, test {len(te)} frames, frames={frames}")
+        te_rv = te_rv.sample(min(limit, len(te_rv)), random_state=0) if rv else None
+    n_rv = int(tr["clip"].str.startswith("rv/").sum())
+    log(f"train {len(tr)} frames ({n_rv} RacketVision), test {len(te)} frames"
+        f"{f' + {len(te_rv)} RacketVision' if rv else ''}, frames={frames}")
     model = BallFusion(frames, weights).cuda()
     pe = {id(p) for p in model.patch_embed_params()}
     backbone = [p for n, p in model.named_parameters() if n.startswith(("encoder", "projector")) and id(p) not in pe]
@@ -309,15 +356,39 @@ def train(root: Path, out: Path, frames: int = 3, epochs: int = 12, batch: int =
                                      num_workers=workers, pin_memory=True, persistent_workers=True)
     total, warm = epochs * len(dl), min(500, epochs * len(dl) // 10)
     base = [g["lr"] for g in opt.param_groups]
-    step, t0, history = 0, time.time(), []
-    for ep in range(epochs):
+    step, t0, history, start, rewarm = 0, time.time(), [], 0, 0
+    if resume and (out / "last.pt").exists():
+        model.load_state_dict(torch.load(out / "last.pt", map_location="cuda"))
+        if (out / "resume.pt").exists():
+            st = torch.load(out / "resume.pt", map_location="cuda", weights_only=False)
+            opt.load_state_dict(st["opt"])
+            start, step, history = st["epoch"] + 1, st["step"], st["history"]
+            log(f"resumed after epoch {start - 1} (step {step}) with optimizer state")
+        else:
+            history = json.loads((out / "history.json").read_text())
+            start = history[-1]["epoch"] + 1
+            step, rewarm = start * len(dl), RESUME_WARM
+            log(f"resumed after epoch {start - 1} (step {step}) from weights only: fresh AdamW, "
+                f"{rewarm}-step re-warm")
+        t0 -= history[-1]["minutes"] * 60 if history else 0
+    resume_step = step
+    wait = 0.0          # seconds blocked on the data loader (after the first WARM_STEPS)
+    for ep in range(start, epochs):
         model.train()
         run_hm = run_vis = 0.0
+        t_fetch = time.time()
         for i, (img, hm_t, vis_t, mask, _) in enumerate(dl):
+            if step == WARM_STEPS:
+                torch.cuda.synchronize()
+                t10, wait = time.time(), 0.0
+            wait += time.time() - t_fetch
             f = step / warm if step < warm else 0.5 * (1 + math.cos(math.pi * (step - warm) / (total - warm)))
+            if step - resume_step < rewarm:
+                f *= (step - resume_step + 1) / rewarm
             for g, b in zip(opt.param_groups, base):
                 g["lr"] = b * f
-            img, hm_t, vis_t, mask = (t.cuda(non_blocking=True) for t in (img, hm_t, vis_t, mask))
+            img = to_input(img)
+            hm_t, vis_t, mask = (t.cuda(non_blocking=True) for t in (hm_t, vis_t, mask))
             with torch.autocast("cuda", dtype=torch.bfloat16):
                 hm, vis = model(img)
             l_hm = focal_loss(hm, hm_t, mask)
@@ -330,36 +401,79 @@ def train(root: Path, out: Path, frames: int = 3, epochs: int = 12, batch: int =
             step += 1
             run_hm += l_hm.item()
             run_vis += l_vis.item()
+            if max_steps and step >= max_steps:
+                torch.cuda.synchronize()
+                sec = (time.time() - t10) / (step - WARM_STEPS)
+                bench = {"gpu": torch.cuda.get_device_name(), "steps": step - WARM_STEPS, "s_per_step": sec,
+                         "loader_wait_share": wait / (time.time() - t10), "workers": workers, "batch": batch,
+                         "steps_per_epoch": len(dl), "hm_loss": run_hm / (i + 1)}
+                log(json.dumps(bench))
+                return bench
             if (i + 1) % 100 == 0:
                 log(f"ep {ep} it {i + 1}/{len(dl)} hm {run_hm / (i + 1):.3f} vis {run_vis / (i + 1):.3f} "
                     f"{(time.time() - t0) / step:.2f}s/it")
+            t_fetch = time.time()
         history.append({"epoch": ep, "hm_loss": run_hm / len(dl), "vis_loss": run_vis / len(dl),
                         "minutes": (time.time() - t0) / 60})
         torch.save(model.state_dict(), out / "last.pt")
+        torch.save({"opt": opt.state_dict(), "epoch": ep, "step": step, "history": history}, out / "resume.pt")
         (out / "history.json").write_text(json.dumps(history, indent=2))
+        if on_checkpoint:
+            on_checkpoint()          # e.g. commit the Modal volume, so a killed container can resume
         log(json.dumps(history[-1]))
-        if ep in (0, epochs // 2):   # monitoring only, on a fixed 600-frame test subset; the final checkpoint is reported
-            m = summarize(predict(model, root, te.sample(min(600, len(te)), random_state=1), frames, batch, workers))
-            log(f"monitor ep {ep}: " + json.dumps({k: round(v, 3) for k, v in m["peak>0.5"].items()
-                                                   if k.startswith(("f1", "median"))}))
+        if ep in (0, epochs // 4, epochs // 2, 3 * epochs // 4):   # monitoring only, on fixed 600-frame test
+            # subsets; the final checkpoint is what is reported
+            for name, t in [("tracknet", te)] + ([("racketvision", te_rv)] if rv else []):
+                m = summarize(predict(model, root, t.sample(min(600, len(t)), random_state=1), frames, batch,
+                                      workers))
+                log(f"monitor ep {ep} {name}: " + json.dumps({k: round(v, 3) for k, v in m["peak>0.5"].items()
+                                                              if k.startswith(("f1", "median"))}))
     train_min = (time.time() - t0) / 60
+    summary = {"frames": frames, "epochs": epochs, "batch": batch, "lr": lr, "train_frames": len(tr),
+               "train_frames_racketvision": n_rv, "steps": step, "train_minutes": train_min,
+               "gpu": torch.cuda.get_device_name(), **evaluate(model, root, out, frames, batch, workers, te, te_rv)}
+    (out / "summary.json").write_text(json.dumps(summary, indent=2, default=float))
+    return summary
+
+
+def evaluate(model, root: Path, out: Path, frames: int, batch: int, workers: int, te: pd.DataFrame,
+             te_rv: pd.DataFrame | None) -> dict:
+    """TrackNet games 8-10 (per_frame.parquet, headline) and RacketVision test (per_frame_rv_test.parquet)."""
     df = predict(model, root, te, frames, batch, workers)
     df.to_parquet(out / "per_frame.parquet", index=False)
-    summary = {"frames": frames, "epochs": epochs, "batch": batch, "lr": lr, "train_frames": len(tr),
-               "train_minutes": train_min, "gpu": torch.cuda.get_device_name(), **summarize(df)}
-    (out / "summary.json").write_text(json.dumps(summary, indent=2, default=float))
     visualize(df, root, out)
-    return summary
+    s = summarize(df)
+    if te_rv is not None:
+        d = predict(model, root, te_rv, frames, batch, workers)
+        d.to_parquet(out / "per_frame_rv_test.parquet", index=False)
+        visualize(d, root, out, prefix="rv_test_")
+        s["racketvision_test"] = {k: v for k, v in summarize(d).items() if k != "by_game"}
+    return s
+
+
+def evaluate_checkpoint(root: Path, ckpt: Path, out: Path, frames: int = 3, batch: int = 16, workers: int = 12,
+                        rv: bool = True, weights: str | None = None) -> dict:
+    """Score a saved checkpoint (e.g. the TrackNet-only run) on both test sets."""
+    out.mkdir(parents=True, exist_ok=True)
+    model = BallFusion(frames, weights).cuda()
+    model.load_state_dict(torch.load(ckpt, map_location="cuda"))
+    s = evaluate(model, root, out, frames, batch, workers, load_items(root, TEST_GAMES),
+                 load_rv_items(root, "test") if rv else None)
+    (out / "summary.json").write_text(json.dumps({"checkpoint": str(ckpt), **s}, indent=2, default=float))
+    return s
 
 
 # ---------------------------------------------------------------- WASB on the same frames
 
-def wasb_eval(root: Path, out: Path, device: str) -> dict:
-    """WASB (dsa.astra.ball.Wasb, no tracker) on every test frame, scored identically."""
+def wasb_eval(root: Path, out: Path, device: str, rv_test: bool = False) -> dict:
+    """WASB (dsa.astra.ball.Wasb, no tracker) on every test frame, scored identically.
+
+    `rv_test`: RacketVision's test split instead (root must hold rv/, as prepare_rv writes it).
+    """
     from dsa.astra.ball import Wasb
 
     out.mkdir(parents=True, exist_ok=True)
-    te = load_items(root, TEST_GAMES)
+    te = load_rv_items(root, "test") if rv_test else load_items(root, TEST_GAMES)
     wasb, rows, t0 = Wasb(device), [], time.time()
     for i, it in enumerate(te.itertuples()):
         frames = [cv2.imread(str(root / it.clip / n)) for n in (it.prev, it.file, it.next)]
@@ -385,8 +499,9 @@ def main() -> None:
     p.add_argument("--root", default=str(SOURCES / "tracknet/TrackNet/Dataset"))
     p.add_argument("--out", default="output/train/ball_fusion/wasb_full_test")
     p.add_argument("--device", default="mps" if torch.backends.mps.is_available() else "cpu")
+    p.add_argument("--rv-test", action="store_true", help="RacketVision test split (root must hold rv/)")
     a = p.parse_args()
-    print(json.dumps(wasb_eval(Path(a.root), Path(a.out), a.device)["peak>0.5"], indent=2, default=float))
+    print(json.dumps(wasb_eval(Path(a.root), Path(a.out), a.device, a.rv_test)["peak>0.5"], indent=2, default=float))
 
 
 if __name__ == "__main__":

@@ -1,8 +1,8 @@
 """Pre-fill labels over short video clips: every labeler, every frame, tracked.
 
-Clips are 10 s windows (--seconds) drawn from the YouTube manifest, stratified
-round-robin over camera x surface x level with one clip per video before any
-video repeats, plus own recordings and broadcast matches. Singles from behind
+Clips are 10 s windows (--seconds) drawn from the YouTube manifest (status
+done), every video once before any twice, round-robin over camera x surface x
+level, plus own recordings and broadcast matches. Singles from behind
 the baseline only for now: manifest rows with play == doubles or camera
 drone / fence / side are skipped.
 
@@ -32,6 +32,13 @@ Per clip:
              keyframes around it agree (NaN across a change). scene.singles.
   rackets    RacketVision on Modal on the same frames as people (--no-rackets).
 
+RF-DETR + ViTPose run on Modal L40S by default (--pose modal, dsa.cloud.pose;
+fp32 as locally; one call per clip, the clip sent as near-lossless H.264, about
+$0.04 per 1k frames); --pose local runs them here (MPS, ~1.5 s a frame). WASB
+always runs here (0.09 s a frame). Pass-1 results are cached per clip in
+data/scratch/clips/<out>/scan/, Astra answers in output/astra_cache/prefill,
+so a rerun redoes only Modal. `kill -USR1 <pid>` prints every thread's stack.
+
 frames gets extra columns clip, collection, video, camera, surface, level, play,
 shot, keyframe, scope (view | nonview | doubles | none), heads (comma list of
 heads labelled), cam_dx, cam_dy. The clips picked go to data/scratch/clips/<out>/clips.json
@@ -43,7 +50,12 @@ heads labelled), cam_dx, cam_dy. The clips picked go to data/scratch/clips/<out>
 from __future__ import annotations
 
 import argparse
+import faulthandler
 import json
+import pickle
+import signal
+import subprocess
+import threading
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
@@ -67,8 +79,13 @@ IOU_MATCH = 0.3                # a person box overlaps its previous self at leas
 TRACK_GAP = 5                  # labelled frames a lost track may reappear within
 MAX_PLAYERS = 2                # singles: more named players means doubles or bystanders, out of scope
 EXCLUDED_CAMERAS = {"drone", "fence", "side"}
-RACKET_CHUNK = 64              # frames per Modal call: ~20 MB of JPEG
+JPEG_Q = 95                    # keyframes sent to Modal; q95 moves ViTPose joints by well under a pixel
+VIDEO_CRF = 4                  # clips sent to Modal as H.264: ~11 MB per 10 s of 720p60 (JPEG q95: ~180 MB)
 CACHE = Path("output/astra_cache/prefill")
+
+
+def log(*a) -> None:
+    print(time.strftime("%H:%M:%S"), *a, flush=True)
 
 
 def media_id(media: str) -> str:
@@ -95,7 +112,7 @@ def window(path: Path, seconds: float, rng: np.random.Generator, meta: dict) -> 
 
 
 def pick_clips(n: int, own: int, broadcast: int, seconds: float, seed: int) -> list[dict]:
-    """YouTube clips stratified round-robin over camera x surface x level, then own and broadcast."""
+    """YouTube clips (each video once before any twice, strata in turn), then own and broadcast."""
     rng = np.random.default_rng(seed)
     clips = []
     m = pd.read_csv(VIDEOS / "youtube" / "manifest.csv")
@@ -104,26 +121,23 @@ def pick_clips(n: int, own: int, broadcast: int, seconds: float, seed: int) -> l
     m = m[ok].sample(frac=1, random_state=seed)
     strata = [g.to_dict("records") for _, g in m.fillna("unknown").groupby(["camera", "surface", "level"])]
     rng.shuffle(strata)
-    used: dict[str, int] = defaultdict(int)
-    want = max(n - own - broadcast, 0)
-    for rnd in range(100):
-        for s in strata:
-            if len(clips) >= want:
-                break
-            v = min(s, key=lambda r: used[r["video_id"]])
-            if used[v["video_id"]] > rnd:
-                continue
-            segs = [p for p in sorted((VIDEOS / "youtube" / v["video_id"]).glob("seg*.mp4")) if not p.name.startswith("._")]
-            used[v["video_id"]] += 1
-            if not segs:
-                continue
-            c = window(segs[rng.integers(len(segs))], seconds, rng, {
-                "collection": "youtube", "video": v["video_id"],
-                **{k: v[k] for k in ("camera", "surface", "level", "play")}})
-            if c:
-                clips.append(c)
-        if len(clips) >= want:
-            break
+    # Every video once before any twice (more videos, more diversity, a cleaner hold-out by video);
+    # within each pass, one video per stratum in turn so small strata are not crowded out.
+    order, want = [], max(n - own - broadcast, 0)
+    while strata and len(order) < want:
+        queues = [list(s) for s in strata]
+        while any(queues) and len(order) < want:
+            for q in queues:
+                if q and len(order) < want:
+                    order.append(q.pop(0))
+    for v in order:
+        segs = [p for p in sorted((VIDEOS / "youtube" / v["video_id"]).glob("seg*.mp4")) if not p.name.startswith("._")]
+        if not segs:
+            continue
+        c = window(segs[rng.integers(len(segs))], seconds, rng, {
+            "collection": "youtube", "video": v["video_id"], **{k: v[k] for k in ("camera", "surface", "level", "play")}})
+        if c:
+            clips.append(c)
     for k, (paths, meta) in enumerate((
             (sorted((RAW / "tennis_videos").glob("*.MOV")), {"collection": "own", "camera": "baseline_low",
                                                               "surface": "hard", "level": "rec", "play": "practice"}),
@@ -150,6 +164,22 @@ def read_range(media: str, a: int, b: int):
     cap.release()
 
 
+def clip_video(clip: dict, work: Path) -> bytes:
+    """The clip re-encoded to near-lossless H.264 (CRF VIDEO_CRF), frame 0 = clip start: what Modal decodes.
+
+    Near-lossless: already at CRF 10 (6 MB) it is closer to the source than JPEG q95 (PSNR 45 vs 44 dB).
+    """
+    out = work / "video" / f"{clip['clip']}.mp4"
+    if not out.exists():
+        out.parent.mkdir(parents=True, exist_ok=True)
+        tmp = out.with_suffix(".tmp.mp4")
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{clip['start'] / clip['fps']:.6f}", "-i", str(DATA / clip["media"]),
+                        "-frames:v", str(clip["end"] - clip["start"]), "-fps_mode", "passthrough", "-c:v", "libx264",
+                        "-preset", "veryfast", "-crf", str(VIDEO_CRF), "-pix_fmt", "yuv420p", "-an", str(tmp)], check=True)
+        tmp.replace(out)
+    return out.read_bytes()
+
+
 class Timer:
     def __init__(self):
         self.sec, self.n = defaultdict(float), defaultdict(int)
@@ -164,9 +194,9 @@ class Timer:
 
 
 class Local:
-    """RF-DETR + ViTPose and WASB, loaded once, timed separately."""
+    """WASB, and RF-DETR + ViTPose when pose runs locally; loaded once, timed separately."""
 
-    def __init__(self, timer: Timer):
+    def __init__(self, timer: Timer, pose: bool = True):
         import torch
 
         from dsa.astra.ball import Wasb
@@ -174,7 +204,7 @@ class Local:
         from dsa.pose.backends import load_models
 
         self.device = "mps" if torch.backends.mps.is_available() else "cpu"
-        self.pose = load_models("rfdetr", 1152, MODELS / "vitpose-plus-huge", self.device)
+        self.pose = load_models("rfdetr", 1152, MODELS / "vitpose-plus-huge", self.device) if pose else None
         self.wasb = Wasb(self.device)
         self.t = timer
 
@@ -192,11 +222,83 @@ class Local:
         self.t.add("vitpose_people", 0, len(xyxy))
         return [{"box": b, "xy": k, "score": s} for b, k, s in zip(xyxy, xy, sc)]
 
+    def submit(self, frames: list[np.ndarray]) -> "Done":
+        return Done([self.people(f) for f in frames])
+
     def ball(self, frames: list[np.ndarray]) -> tuple[bool, float, float]:
         t0 = time.time()
         vis, x, y, _ = self.wasb.locate(frames)
         self.t.add("wasb", time.time() - t0)
         return vis, x, y
+
+
+class Done:
+    def __init__(self, value):
+        self.value = value
+
+    def get(self):
+        return self.value
+
+
+def jpeg(bgr: np.ndarray) -> bytes:
+    return cv2.imencode(".jpg", bgr, [cv2.IMWRITE_JPEG_QUALITY, JPEG_Q])[1].tobytes()
+
+
+class Cost:
+    """GPU seconds per Modal labeler and the containers used, from what the calls report."""
+
+    def __init__(self):
+        self.sec, self.frames, self.tasks, self.lock = defaultdict(float), defaultdict(int), defaultdict(set), threading.Lock()
+
+    def add(self, name: str, r: dict, n: int):
+        with self.lock:
+            self.sec[(name, r["gpu"])] += r["seconds"]
+            self.frames[name] += n
+            self.tasks[name].add(r.get("task"))
+
+    def report(self) -> dict:
+        from dsa.cloud.pose import usd
+
+        out = {}
+        for (name, gpu), sec in self.sec.items():
+            out[f"{name} on {gpu}"] = {"busy_seconds": round(sec, 1), "frames": self.frames[name],
+                                       "containers": len(self.tasks[name]), "usd_busy": round(usd(gpu, sec), 3),
+                                       "usd_per_1k_frames": round(usd(gpu, sec) / max(self.frames[name], 1) * 1000, 4)}
+        return out
+
+
+class ModalPose:
+    """RF-DETR + ViTPose on Modal (dsa.cloud.pose): frames go up as JPEG in chunks, calls run in parallel."""
+
+    def __init__(self, cost: Cost):
+        from dsa.cloud.pose import Pose
+
+        self.pose, self.chunk, self.cost = Pose(), 32, cost
+
+    def submit_clip(self, video: bytes, offsets: list[int]) -> "Pending":
+        return Pending([(len(offsets), self.pose.clip.spawn(video, offsets))] if offsets else [], self.cost)
+
+    def submit(self, frames: list) -> "Pending":
+        data = [f if isinstance(f, bytes) else jpeg(f) for f in frames]
+        calls = [(len(data[i:i + self.chunk]), self.pose.people.spawn(data[i:i + self.chunk]))
+                 for i in range(0, len(data), self.chunk)]
+        return Pending(calls, self.cost)
+
+
+class Pending:
+    def __init__(self, calls, cost: Cost):
+        self.calls, self.cost, self.value, self.lock = calls, cost, None, threading.Lock()
+
+    def get(self) -> list:
+        with self.lock:                   # keyframe results are read from several Astra threads
+            if self.value is None:
+                value = []
+                for n, call in self.calls:
+                    r = call.get()
+                    self.cost.add("pose", r, n)
+                    value += r["people"]
+                self.value = value
+        return self.value
 
 
 def scan(clip: dict, local: Local, timer: Timer) -> dict:
@@ -250,7 +352,7 @@ def shot_of(shots, f: int) -> int:
     return next(i for i, (s0, s1) in enumerate(shots) if s0 <= f < s1)
 
 
-def keyframe_items(clip: dict, keys: list[int], local: Local, work: Path) -> dict[int, dict]:
+def keyframe_items(clip: dict, keys: list[int], pose, work: Path) -> dict[int, dict]:
     """Keyframe images, 2 x 2 sheets 0.5 s apart, numbered-box images and people, for the Astra calls."""
     fps, need = clip["fps"], {}
     for k in keys:
@@ -269,20 +371,34 @@ def keyframe_items(clip: dict, keys: list[int], local: Local, work: Path) -> dic
         paths = {n: work / f"{stem}{s}.jpg" for n, s in (("frame_path", ""), ("sheet_path", "_sheet"), ("boxes_path", "_boxes"))}
         cv2.imwrite(str(paths["frame_path"]), bgr)
         cv2.imwrite(str(paths["sheet_path"]), np.vstack([np.hstack(sheet[:2]), np.hstack(sheet[2:])]))
-        people = local.people(bgr)
-        boxed = bgr.copy()
-        for i, p in enumerate(people):
-            x1, y1, x2, y2 = (int(v) for v in p["box"])
-            cv2.rectangle(boxed, (x1, y1), (x2, y2), (0, 255, 255), 2)
-            cv2.putText(boxed, str(i), (x1, max(y1 - 6, 16)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
-        cv2.imwrite(str(paths["boxes_path"]), boxed)
-        items[k] = {"row": {"sample": schema.sample_id("k", clip["clip"].replace("@", "_"), k)}, "bgr": bgr,
-                    "people": people, **paths}
+        items[k] = {"row": {"sample": schema.sample_id("k", clip["clip"].replace("@", "_"), k)}, "bgr": bgr, **paths}
+    # Cached: the numbered-box images, hence Astra's cache keys, must not move between reruns.
+    cached = work / "keyframes" / f"{clip['clip']}.pkl"
+    if cached.exists():
+        calls = Done(pickle.loads(cached.read_bytes()))
+    else:
+        calls = pose.submit([items[k]["bgr"] for k in keys])
+        calls.save = cached
+    for i, k in enumerate(keys):
+        items[k]["pending"] = (calls, i)
     return items
 
 
 def astra_keyframe(item: dict, work: Path, timer: Timer) -> dict:
-    """Scene call, then head top for the chosen players (at most MAX_PLAYERS) if in scope."""
+    """Numbered-box image, scene call, then head top for the chosen players (at most MAX_PLAYERS) if in scope."""
+    calls, i = item.pop("pending")
+    item["people"] = people = calls.get()[i]
+    if getattr(calls, "save", None) and not calls.save.exists():
+        calls.save.parent.mkdir(exist_ok=True)
+        tmp = calls.save.with_suffix(f".{threading.get_ident()}.tmp")
+        tmp.write_bytes(pickle.dumps(calls.get()))
+        tmp.replace(calls.save)
+    boxed = item["bgr"].copy()
+    for j, p in enumerate(people):
+        x1, y1, x2, y2 = (int(v) for v in p["box"])
+        cv2.rectangle(boxed, (x1, y1), (x2, y2), (0, 255, 255), 2)
+        cv2.putText(boxed, str(j), (x1, max(y1 - 6, 16)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+    cv2.imwrite(str(item["boxes_path"]), boxed)
     t0 = time.time()
     sc = astra_scene(item, work / "diagram.png", CACHE)
     timer.add("astra_scene", time.time() - t0)
@@ -294,6 +410,7 @@ def astra_keyframe(item: dict, work: Path, timer: Timer) -> dict:
         t0 = time.time()
         sc["head"] = astra_feet(item, sc["chosen"], work, CACHE)
         timer.add("astra_head", time.time() - t0)
+    item.pop("bgr")                       # 100 clips of keyframes would hold GBs
     return sc
 
 
@@ -332,10 +449,10 @@ def track(frames: list[int], people: dict[int, list[dict]], start_id: int) -> tu
     return out, nxt
 
 
-def label_clip(clip: dict, info: dict, scenes: dict[int, dict], items: dict[int, dict], local: Local, stride: int,
-               racket_calls: list, predict, timer: Timer) -> dict[str, list]:
-    """Pass 2: people on in-scope frames, tracks, players, and the rows of every table for one clip."""
-    shots, keys, fps = info["shots"], info["keys"], clip["fps"]
+def submit_clip(clip: dict, info: dict, scenes: dict[int, dict], items: dict[int, dict], pose, stride: int,
+                rackets, work: Path) -> dict:
+    """Pass 2, first half: scope per frame; people (and rackets) sent off for the in-scope frames."""
+    shots, keys = info["shots"], info["keys"]
     kshot = {k: shot_of(shots, k) for k in keys}
     nearest, scope = {}, {}
     for f in range(clip["start"], clip["end"]):
@@ -350,22 +467,50 @@ def label_clip(clip: dict, info: dict, scenes: dict[int, dict], items: dict[int,
         scope[f] = "nonview" if not sc["view"] else "doubles" if not sc["singles"] else "view"
     labelled = [f for f in range(clip["start"], clip["end"]) if scope[f] == "view"
                 and ((f - clip["start"]) % stride == 0 or f in keys)]
+    todo = [f for f in labelled if f not in keys]
+    remote, start = isinstance(pose, ModalPose), clip["start"]
+    cached = work / "modal" / f"{clip['clip']}.pkl"
+    if cached.exists():
+        c = pickle.loads(cached.read_bytes())
+        if c["todo"] == todo and c["labelled"] == labelled and (rackets is None) == (c["dets"] is None):
+            return {"clip": clip, "info": info, "scenes": scenes, "items": items, "scope": scope, "nearest": nearest,
+                    "labelled": labelled, "todo": todo, "people": Done(c["people"]), "racket_calls": [],
+                    "dets": c["dets"], "cache": cached}
+    video = clip_video(clip, work) if labelled and (remote or rackets is not None) else None
+    if remote:
+        people = pose.submit_clip(video, [f - start for f in todo])
+    else:                                       # locally, run now rather than hold a clip of raw frames
+        want, got = set(todo), {}
+        if todo:
+            for f, bgr in read_range(clip["media"], min(todo), max(todo) + 1):
+                if f in want:
+                    got[f] = pose.people(bgr)
+        people = Done([got[f] for f in todo])
+    racket_calls = [(labelled, rackets.clip.spawn(video, [f - start for f in labelled]))] \
+        if rackets is not None and labelled else []
+    return {"clip": clip, "info": info, "scenes": scenes, "items": items, "scope": scope, "nearest": nearest,
+            "labelled": labelled, "todo": todo, "people": people, "racket_calls": racket_calls,
+            "dets": None if rackets is None else {}, "cache": cached}
+
+
+def finish_clip(st: dict, cost: Cost) -> tuple[dict[str, list], dict[str, list]]:
+    """Pass 2, second half: tracks, players and the rows of every table for one clip; racket detections."""
+    clip, info, scenes, items, scope, nearest, labelled = (st[k] for k in (
+        "clip", "info", "scenes", "items", "scope", "nearest", "labelled"))
+    shots, keys, fps = info["shots"], info["keys"], clip["fps"]
+    kshot = {k: shot_of(shots, k) for k in keys}
     people = {k: items[k]["people"] for k in keys if scope.get(k) == "view"}
-    jpegs = {}
-    todo = set(labelled)
-    if todo:
-        for f, bgr in read_range(clip["media"], min(todo), max(todo) + 1):
-            if f not in todo:
-                continue
-            if f not in people:
-                people[f] = local.people(bgr)
-            if predict is not None:
-                jpegs[f] = cv2.imencode(".jpg", bgr, [cv2.IMWRITE_JPEG_QUALITY, 92])[1].tobytes()
-    if predict is not None and jpegs:
-        fs = sorted(jpegs)
-        for i in range(0, len(fs), RACKET_CHUNK):
-            chunk = fs[i:i + RACKET_CHUNK]
-            racket_calls.append((clip["clip"], chunk, time.time(), predict.spawn([jpegs[f] for f in chunk], [[] for _ in chunk])))
+    people.update(zip(st["todo"], st["people"].get()))
+    by_frame = dict(st["dets"] or {})
+    for chunk, call in st["racket_calls"]:
+        r = call.get()
+        cost.add("rackets", r, len(chunk))
+        by_frame.update({f: pred["detections"] for f, pred in zip(chunk, r["preds"])})
+    if not st["cache"].exists():
+        st["cache"].parent.mkdir(exist_ok=True)
+        st["cache"].write_bytes(pickle.dumps({"todo": st["todo"], "labelled": labelled, "people": st["people"].get(),
+                                              "dets": None if st["dets"] is None else by_frame}))
+    dets = {schema.sample_id(clip["source"], media_id(clip["media"]), f): d for f, d in by_frame.items()}
     # Tracks within each shot; players are the tracks Astra named on a keyframe of the shot.
     tracks, nxt = {}, 0
     for s in range(len(shots)):
@@ -419,7 +564,7 @@ def label_clip(clip: dict, info: dict, scenes: dict[int, dict], items: dict[int,
                                        "named": (i in scenes[f]["chosen"]) if f in keys else None,
                                        "labeler": PEOPLE + (f"; head top: {ASTRA}" if head is not None else ""),
                                        "_score": p["score"]})
-            if predict is not None:
+            if st["dets"] is not None:
                 heads.append("rackets")
         dx, dy = info["shift"].get(f, (np.nan, np.nan))
         rows["frames"].append({"sample": s, "source": src, "split": "train", "media": clip["media"], "frame": f,
@@ -427,7 +572,7 @@ def label_clip(clip: dict, info: dict, scenes: dict[int, dict], items: dict[int,
                                **{k: clip.get(k) for k in ("collection", "video", "camera", "surface", "level", "play")},
                                "shot": sh, "keyframe": f in keys, "scope": scope[f], "heads": ",".join(heads),
                                "cam_dx": dx, "cam_dy": dy})
-    return rows
+    return rows, dets
 
 
 def attach_rackets(rows: dict[str, list], dets: dict[str, list]) -> None:
@@ -465,7 +610,10 @@ def main() -> None:
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--clip-list", help="clips.json of an earlier run, to redo the same clips (the manifest grows)")
     p.add_argument("--no-rackets", action="store_true", help="skip the Modal racket step")
+    p.add_argument("--pose", choices=["modal", "local"], default="modal",
+                   help="RF-DETR + ViTPose on Modal GPUs (dsa.cloud.pose) or on this machine")
     a = p.parse_args()
+    faulthandler.register(signal.SIGUSR1, all_threads=True)      # kill -USR1 <pid> prints every thread's stack
 
     work = SCRATCH / "clips" / a.out
     work.mkdir(parents=True, exist_ok=True)
@@ -476,41 +624,86 @@ def main() -> None:
     (work / "clips.json").write_text(json.dumps(clips, indent=1, default=str))
     print(f"{len(clips)} clips, {sum(c['end'] - c['start'] for c in clips)} frames -> {work / 'clips.json'}", flush=True)
     diagram(work / "diagram.png")
-    timer = Timer()
+    timer, cost = Timer(), Cost()
     t_start = time.time()
-    local = Local(timer)
+    local = Local(timer, pose=a.pose == "local")
     timer.add("load_models", time.time() - t_start)
 
     import contextlib
-    predict, ctx = None, contextlib.nullcontext()
+    apps, rackets = [], None
+    if a.pose == "modal":
+        from dsa.cloud.pose import app as pose_app
+        apps.append(pose_app)
     if not a.no_rackets:
-        from dsa.cloud.racket_pose import app, predict
-        ctx = app.run()
-    rows, racket_calls = defaultdict(list), []
-    with ctx, ThreadPoolExecutor(a.workers) as pool:
-        # Pass 1 for every clip first, so Astra works while the GPU does.
-        pending = []
-        for c in clips:
-            info = scan(c, local, timer)
-            items = keyframe_items(c, info["keys"], local, work)
-            futs = {k: pool.submit(astra_keyframe, it, work, timer) for k, it in items.items()}
-            pending.append((c, info, items, futs))
-            print(f"scan {c['clip']}: {len(info['shots'])} shots, {len(info['keys'])} keyframes", flush=True)
-        for c, info, items, futs in pending:
-            scenes = {k: f.result() for k, f in futs.items()}
-            for k, v in label_clip(c, info, scenes, items, local, a.stride, racket_calls, predict, timer).items():
+        from dsa.cloud.racket_pose import Rackets, app as racket_app
+        apps.append(racket_app)
+    rows, dets = defaultdict(list), {}
+    with contextlib.ExitStack() as stack, ThreadPoolExecutor(a.workers) as pool:
+        for app in apps:
+            stack.enter_context(app.run())
+        pose = ModalPose(cost) if a.pose == "modal" else local
+        if not a.no_rackets:
+            rackets = Rackets()
+        # Pass 1 on the main thread (WASB on the local GPU); each clip's pass 2 goes to Modal from a second
+        # thread as soon as its Astra answers are in, so Astra, uploads and Modal overlap the scan.
+        # With local pose, pass 2 runs after the scan instead: the local GPU is busy with WASB until then.
+        t0, remote = time.time(), a.pose == "modal"
+
+        failed = {}
+
+        def second(c, info, items, futs):
+            try:
+                scenes = {k: f.result() for k, f in futs.items()}
+            except Exception as e:                 # e.g. Astra out of credits: rerun later, caches keep the rest
+                failed[c["clip"]] = str(e).strip().splitlines()[-1][:200]
+                log(f"skip {c['clip']}: {failed[c['clip']]}")
+                return None
+            try:
+                st = submit_clip(c, info, scenes, items, pose, a.stride, rackets, work)
+            except Exception as e:                 # e.g. Modal spend limit: keep what was already paid for
+                failed[c["clip"]] = str(e).strip().splitlines()[-1][:200]
+                log(f"skip {c['clip']}: {failed[c['clip']]}")
+                return None
+            log(f"submit {c['clip']}: {sum(s['view'] for s in scenes.values())}/{len(scenes)} view keyframes, "
+                f"{len(st['labelled'])} frames for people")
+            return st
+
+        with ThreadPoolExecutor(1) as submitter:
+            later = []
+            for c in clips:
+                cached = work / "scan" / f"{c['clip']}.pkl"
+                if cached.exists():
+                    info = pickle.loads(cached.read_bytes())
+                else:
+                    info = scan(c, local, timer)
+                    cached.parent.mkdir(exist_ok=True)
+                    cached.write_bytes(pickle.dumps(info))
+                try:
+                    items = keyframe_items(c, info["keys"], pose, work)
+                except Exception as e:             # e.g. Modal spend limit
+                    failed[c["clip"]] = str(e).strip().splitlines()[-1][:200]
+                    log(f"skip {c['clip']}: {failed[c['clip']]}")
+                    continue
+                futs = {k: pool.submit(astra_keyframe, it, work, timer) for k, it in items.items()}
+                job = (c, info, items, futs)
+                later.append(submitter.submit(second, *job) if remote else job)
+                log(f"scan {c['clip']}: {len(info['shots'])} shots, {len(info['keys'])} keyframes")
+            timer.add("pass1_wall", time.time() - t0, len(clips))
+            states = [f.result() for f in later] if remote else [second(*job) for job in later]
+            states = [st for st in states if st is not None]
+            (work / "failed.json").write_text(json.dumps(failed, indent=1))
+            if failed:
+                log(f"{len(failed)} clips skipped (see {work / 'failed.json'}); rerun the same command to finish them")
+        for st in states:
+            try:
+                r, d = finish_clip(st, cost)
+            except Exception as e:                 # a failed Modal call: the other clips still get written
+                log(f"skip {st['clip']['clip'] if isinstance(st.get('clip'), dict) else '?'}: {str(e).strip().splitlines()[-1][:200]}")
+                continue
+            for k, v in r.items():
                 rows[k] += v
-            print(f"label {c['clip']}: {sum(s['view'] for s in scenes.values())}/{len(scenes)} view keyframes",
-                  flush=True)
-        dets = {}
-        if racket_calls:
-            t0, n = min(r[2] for r in racket_calls), 0
-            for clip, chunk, _, call in racket_calls:
-                src = next(c for c in clips if c["clip"] == clip)
-                for f, pred in zip(chunk, call.get()):
-                    dets[schema.sample_id(a.out, media_id(src["media"]), f)] = pred["detections"]
-                    n += 1
-            timer.add("rackets_modal_wall", time.time() - t0, n)
+            dets.update(d)
+        timer.add("pass2_wall", time.time() - t0, sum(len(st["labelled"]) for st in states))
     attach_rackets(rows, dets)
     timer.add("total_wall", time.time() - t_start)
 
@@ -527,9 +720,11 @@ def main() -> None:
         tables[t][c] = tables[t][c].astype("boolean")
     out = schema.write(a.out, tables)
     report = timer.report()
-    (work / "timings.json").write_text(json.dumps(report, indent=1))
+    (work / "timings.json").write_text(json.dumps({"local": report, "modal": cost.report()}, indent=1))
     print(json.dumps({k: len(v) for k, v in tables.items()}), "->", out)
     print(pd.DataFrame(report).T.to_string())
+    if cost.sec:
+        print(pd.DataFrame(cost.report()).T.to_string())
 
 
 if __name__ == "__main__":

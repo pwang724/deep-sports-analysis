@@ -31,8 +31,9 @@ REGISTRY = [
     Source("racketvision", "https://huggingface.co/datasets/linfeng302/RacketVision", "MIT (labels)",
            "YouTube broadcast rallies, 1080p MP4, 20% of frames labelled",
            "rackets (box + 5 points), ball (x, y, visible)", "its info/train|val|test.json by (match, rally)",
-           "tennis subset; labels on disk for 269 of 431 rallies (162 train missing), videos only for "
-           "matches 1, 10, 100 (Hugging Face rate limits); fps varies by match (25, 29.97, 60)"),
+           "tennis subset: 431 matches, one 10 s rally each; labels for all 431 on disk, videos only for "
+           "matches 1, 10, 100 locally, all 431 on the Modal volume (datasets/racketvision); fps varies by "
+           "match (279 at 25, 32 at 30, 1 at 50, 119 at 60)"),
     Source("coco_wholebody", "https://github.com/jin-s13/COCO-WholeBody", "CC BY-NC 4.0 (labels)",
            "COCO 2017 photos, not tennis", "people (box, 17 body + 6 feet)", "val2017 val",
            "val annotations only; images fetched one by one as used"),

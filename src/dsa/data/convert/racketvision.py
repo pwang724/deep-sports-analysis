@@ -15,9 +15,12 @@ schema.RACKET. Their flag is 1 (labelled) or 0 with x, y = 0, 0 (not placed:
 hidden or off-frame, the source does not say which), so 1 -> vis 2 and 0 ->
 NaN. Ball Visibility 0 has X, Y = 0, 0: visible = False with no position.
 
-Labels are on disk for 269 of the 431 rallies in tennis/info/{train,val,test}
-.json (all val and test, 188 of 350 train); only 3 videos are. Media paths are
-recorded either way; fps is read from the video when it is on disk, else NaN.
+Labels are on disk for all 431 rallies in tennis/info/{train,val,test}.json
+(350 train, 38 val, 43 test; one rally per match). Only 3 videos are local
+(matches 1, 10, 100); the whole tennis subset, videos included, is on the
+Modal volume (/vol/datasets/racketvision, dsa.cloud.train_ball.fetch_rv).
+Media paths are recorded either way; fps is read from the video when it is on
+disk, else NaN (the volume's frames720/index.csv has every rally's fps).
 """
 from __future__ import annotations
 

@@ -21,6 +21,8 @@ RacketVision's test split, so the model never trained on them.
     modal run src/dsa/cloud/racket_pose.py
 """
 import json
+import os
+import time
 from pathlib import Path
 
 import modal
@@ -40,41 +42,115 @@ image = (
 app = modal.App("deep-sports-racket-pose", image=image)
 
 
-@app.function(gpu=["L4", "A10"], timeout=30 * 60)
-def predict(frames: list[bytes], boxes: list[list[list[float]]]) -> list[dict]:
-    """Per frame: RTMPose on each given xyxy box, and RTMDet + RTMPose on the full frame."""
-    import functools
+@app.cls(gpu="L40S", cpu=2.0, memory=8192, timeout=30 * 60, max_containers=20, scaledown_window=60)
+class Rackets:
+    """RTMDet + RTMPose, loaded once per container.
 
-    import cv2
-    import numpy as np
-    import torch
+    L40S is cheapest per frame (`bench`, 300 frames warm, incl. CPU and memory): L4 21 frames/s
+    $0.013 / 1k frames, A10 35 $0.010, L40S 49 $0.005 (2026-09-24).
+    """
 
-    torch.load = functools.partial(torch.load, weights_only=False)
-    from huggingface_hub import hf_hub_download
-    from mmdet.apis import inference_detector, init_detector
-    from mmengine.registry import DefaultScope
-    from mmpose.apis import inference_topdown
-    from mmpose.apis import init_model as init_pose_model
+    @modal.enter()
+    def load(self):
+        import functools
 
-    ckpt = lambda f: hf_hub_download("linfeng302/RacketVision-Models", f"checkpoints/{f}")
-    det = init_detector("/rp/configs/detection/rtmdet_m_racket_infer.py", ckpt("epoch_300.pth"), device="cuda")
-    pose = init_pose_model("/rp/configs/pose/rtmpose_m_racket_infer.py", ckpt("best_PCK_epoch_90.pth"), device="cuda")
+        import torch
 
-    def keypoints(img, xyxy):
-        if not len(xyxy):
-            return []
-        return [{"box": b.tolist(), "kp": p.pred_instances.keypoints[0].tolist(),
-                 "kp_score": p.pred_instances.keypoint_scores[0].tolist()}
-                for p, b in zip(inference_topdown(pose, img, np.asarray(xyxy, float)), np.asarray(xyxy, float))]
+        torch.load = functools.partial(torch.load, weights_only=False)
+        from huggingface_hub import hf_hub_download
+        from mmdet.apis import init_detector
+        from mmpose.apis import init_model as init_pose_model
 
-    out = []
-    for raw, given in zip(frames, boxes):
-        img = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
-        with DefaultScope.overwrite_default_scope("mmdet"):
-            d = inference_detector(det, img).pred_instances
-        keep = (d.labels.cpu().numpy() == 2) & (d.scores.cpu().numpy() >= 0.3)
-        out.append({"given": keypoints(img, given), "detections": keypoints(img, d.bboxes.cpu().numpy()[keep])})
-    return out
+        ckpt = lambda f: hf_hub_download("linfeng302/RacketVision-Models", f"checkpoints/{f}")
+        self.det = init_detector("/rp/configs/detection/rtmdet_m_racket_infer.py", ckpt("epoch_300.pth"), device="cuda")
+        self.pose = init_pose_model("/rp/configs/pose/rtmpose_m_racket_infer.py", ckpt("best_PCK_epoch_90.pth"),
+                                    device="cuda")
+        self.gpu = torch.cuda.get_device_name(0)
+
+    def _run(self, frames: list, boxes: list[list[list[float]]]) -> list[dict]:
+        """frames: encoded images (bytes) or BGR arrays."""
+        import cv2
+        import numpy as np
+        from mmdet.apis import inference_detector
+        from mmengine.registry import DefaultScope
+        from mmpose.apis import inference_topdown
+
+        def keypoints(img, xyxy):
+            if not len(xyxy):
+                return []
+            return [{"box": b.tolist(), "kp": p.pred_instances.keypoints[0].tolist(),
+                     "kp_score": p.pred_instances.keypoint_scores[0].tolist()}
+                    for p, b in zip(inference_topdown(self.pose, img, np.asarray(xyxy, float)), np.asarray(xyxy, float))]
+
+        out = []
+        for raw, given in zip(frames, boxes):
+            img = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR) if isinstance(raw, bytes) else raw
+            with DefaultScope.overwrite_default_scope("mmdet"):
+                d = inference_detector(self.det, img).pred_instances
+            keep = (d.labels.cpu().numpy() == 2) & (d.scores.cpu().numpy() >= 0.3)
+            out.append({"given": keypoints(img, given), "detections": keypoints(img, d.bboxes.cpu().numpy()[keep])})
+        return out
+
+    @modal.method()
+    def predict(self, frames: list[bytes], boxes: list[list[list[float]]]) -> list[dict]:
+        """Per frame: RTMPose on each given xyxy box, and RTMDet + RTMPose on the full frame."""
+        return self._run(frames, boxes)
+
+    @modal.method()
+    def clip(self, video: bytes, offsets: list[int]) -> dict:
+        """One call per clip: the clip as H.264 (dsa.label.clips.clip_video), the frames at `offsets`."""
+        import tempfile
+
+        import cv2
+
+        t0, want, out, busy = time.time(), set(offsets), {}, 0.0
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as f:
+            f.write(video)
+            f.flush()
+            cap = cv2.VideoCapture(f.name)
+            for i in range(max(offsets) + 1):
+                ok, bgr = cap.read()
+                if not ok:
+                    raise RuntimeError(f"clip has {i} frames, wanted offsets up to {max(offsets)}")
+                if i in want:
+                    t1 = time.time()
+                    out[i] = self._run([bgr], [[]])[0]
+                    busy += time.time() - t1
+        return {"preds": [out[o] for o in offsets], "seconds": time.time() - t0, "decode": time.time() - t0 - busy,
+                "gpu": self.gpu, "task": os.environ.get("MODAL_TASK_ID")}
+
+    @modal.method()
+    def timed(self, frames: list[bytes], boxes: list[list[list[float]]]) -> dict:
+        """predict, plus the seconds spent and the GPU, for cost accounting."""
+        t0 = time.time()
+        out = self._run(frames, boxes)
+        return {"preds": out, "seconds": time.time() - t0, "gpu": self.gpu, "task": os.environ.get("MODAL_TASK_ID")}
+
+
+# The old function's name, so `predict.remote(frames, boxes)` keeps working.
+predict = Rackets().predict
+
+
+@app.local_entrypoint()
+def bench(gpus: str = "L4,A10,L40S", n: int = 300):
+    """Warm frames/s and $ per 1k frames of one clip on each GPU:  modal run src/dsa/cloud/racket_pose.py::bench"""
+    from dsa.cloud.pose import CPU, MEMORY, PRICE
+    from dsa.data.paths import SCRATCH
+    from dsa.label.clips import clip_video
+
+    c = json.loads((SCRATCH / "clips/clips_v1/clip_list.json").read_text())[2]
+    video = clip_video(c, SCRATCH / "clips" / "bench")
+    offsets = list(range(min(n, c["end"] - c["start"])))
+    for g in gpus.split(","):
+        R = Rackets.with_options(gpu=g)
+        for k in ("cold", "warm"):
+            t = time.time()
+            r = R().clip.remote(video, offsets)
+            rate = next(v for key, v in PRICE.items() if key in r["gpu"])
+            usd = r["seconds"] / 3600 * (rate + CPU * PRICE["cpu"] + MEMORY / 1024 * PRICE["gib"])
+            print(f"{g:5s} {k}: wall {time.time() - t:6.1f} s, busy {r['seconds']:6.1f} s (decode {r['decode']:.1f} s), "
+                  f"{len(offsets) / r['seconds']:5.2f} frames/s, ${usd / len(offsets) * 1000:.3f} per 1k frames ({r['gpu']})",
+                  flush=True)
 
 
 def people(items: list[dict], frames: list, cache: Path) -> list[list[dict]]:
