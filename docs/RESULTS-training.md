@@ -139,3 +139,21 @@ RacketVision's model is the racket labeler: about 2 px error against Astra's
 6-7 px, milliseconds against 22 s, and it needs no training. Its detector
 misses 8% of rackets; Astra stays the fallback for those and for our footage
 until the gold set checks both.
+
+## Ball: WASB vs Astra on TrackNet (2026-09-23)
+
+TrackNet tennis test games 8-10 (WASB's test split): 80 frames with a visible
+ball, 20 without (`dsa.astra.ball`). Both see frames t-1, t, t+1 and place the
+ball in t. WASB is its released tennis HRNet run locally without its tracker;
+Astra gets the three full 1280 x 720 frames. 16 s per Astra call.
+
+| labeler | F1 @ 4 px | F1 @ 10 px | recall @ 10 px | median error | ball claimed on 20 empty frames |
+|---|---|---|---|---|---|
+| WASB | 0.886 | 0.962 | 95% | 2.1 px | 2 |
+| Astra, medium effort | 0.691 | 0.933 | 96% | 2.2 px | 5 |
+
+Astra found the ball in all 80 frames that had one, typically within 2 px, and
+only one was far off (117 px, a different object). It loses to WASB on
+precision at 4 px and on empty frames. WASB stays the ball labeler: better,
+and milliseconds per frame against 16 s. Astra can check WASB where the two
+disagree.

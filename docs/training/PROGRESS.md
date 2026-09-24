@@ -15,7 +15,7 @@ on a score table plus the worst misses.
 - [x] View / in play definitions agreed: view = camera behind a baseline, any height, whole court; in play = serve toss to end of rally. Astra labels both provisionally; strict scoring in the gold set
 - [ ] Download TennisCourtDetector, TrackNet tennis, RacketVision (COCO-WholeBody val: done)
 - [ ] Label format and converters (TrackNet, TennisCourtDetector)
-- [ ] Ball: WASB vs Astra on TrackNet, then confirm
+- [ ] Ball: WASB vs Astra on TrackNet, 100 frames: F1@4px 0.886 vs 0.691, @10px 0.962 vs 0.933. Proposed: WASB; awaiting confirmation
 - [x] Racket: RacketVision's released RTMDet + RTMPose vs Astra on 39 test-split rackets: PCK@0.1 of racket length 93% (labelled box) / 81% (own detector) vs Astra 58%. Use RacketVision's model; no training needed
 - [ ] Court labeler: fine-tune on TennisCourtDetector
 - [ ] Court: Astra vs court labeler on TennisCourtDetector, then confirm
