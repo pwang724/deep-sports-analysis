@@ -269,3 +269,18 @@ misses nearly still balls (serve toss, bounce before a serve). 91% of balls
 are found by at least one of the two, 77% by both. Loss was still falling at
 epoch 12.
 
+## Cheaper Codex models vs Astra (2026-09-24)
+
+Same samples as phase 0, effort medium. Codex credits ran out before the
+events test finished for Sol and started for Luna; stroke type untested.
+
+| task | Astra (gpt-6-astra) | Sol (gpt-5.6-sol) | Luna (gpt-5.6-luna) |
+|---|---|---|---|
+| court, within 7 px | **96.7%** (median 2.2 px) | 85.0% (2.8 px) | 76.5% (3.2 px) |
+| view, 100 frames | 99% | 96% | **99%**, same answers as Astra, 6.8 vs 11.6 s |
+| in play, 100 frames | **83%**, 1 of 50 false yes | 73%, 10 of 50 false yes | 78%, 9 of 50 false yes |
+| hit within 2 frames, 34 windows | **79%** | 53% | not run |
+
+About 13k of each call's ~15-18k input tokens is Codex's own system prompt,
+so the models differ mainly in price per token, not in tokens used.
+

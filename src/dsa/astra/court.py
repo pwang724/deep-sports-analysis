@@ -27,7 +27,7 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from dsa.astra.codex import ask
+from dsa.astra.codex import DEFAULT_MODEL, add_model_args, ask, cache_key, run_dir, usage
 from dsa.data.paths import SOURCES, CODE, MODELS
 
 ROOT = SOURCES / "tennis_court_detector/data"
@@ -163,10 +163,13 @@ def main() -> None:
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--device", default="mps" if torch.backends.mps.is_available() else "cpu")
     p.add_argument("--out", default="output/astra_eval/court")
+    add_model_args(p)
     a = p.parse_args()
 
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
+    res = run_dir(out, a.model, a.effort)
+    lab = "astra" if a.model == DEFAULT_MODEL else a.model
     diagram(out / "diagram.png")
     items = sample(a.n)
     print(f"{len(items)} frames", flush=True)
@@ -180,28 +183,34 @@ def main() -> None:
 
     def ask_one(it):
         img = (ROOT / "images" / f"{it['id']}.png").resolve()
-        ans, sec = ask(PROMPT, [img, (out / "diagram.png").resolve()], SCHEMA, out / "cache")
+        imgs = [img, (out / "diagram.png").resolve()]
+        ans, sec = ask(PROMPT, imgs, SCHEMA, out / "cache", model=a.model, effort=a.effort)
         xy = np.array([[q["x"], q["y"]] for q in ans["points"]], float)
+        keys.add(cache_key(a.model, a.effort, PROMPT, SCHEMA, imgs))
         return it, xy, sec
+
+    keys = set()
 
     with ThreadPoolExecutor(a.workers) as pool:
         for it, xy, sec in pool.map(ask_one, items):
-            preds[("astra", it["id"])] = xy
-            rows.append({**score("astra", xy, it), "sec": sec})
+            preds[(lab, it["id"])] = xy
+            rows.append({**score(lab, xy, it), "sec": sec})
 
     df = pd.DataFrame(rows)
-    df.to_parquet(out / "per_frame.parquet", index=False)
-    np.save(out / "preds.npy", {f"{k[0]}/{k[1]}": v for k, v in preds.items()}, allow_pickle=True)
+    df.to_parquet(res / "per_frame.parquet", index=False)
+    np.save(res / "preds.npy", {f"{k[0]}/{k[1]}": v for k, v in preds.items()}, allow_pickle=True)
     summary = {}
-    for lab, g in df.groupby("labeler"):
+    for name, g in df.groupby("labeler"):
         errs = pd.concat([g[f"err{k}"] for k in range(14) if f"err{k}" in g]).dropna()
-        summary[lab] = {"frames": len(g), "points": int(len(errs)), "within7": float((errs <= 7).mean()),
-                        "within15": float((errs <= 15).mean()), "median_err": float(errs.median()),
-                        "frames_all_within15": float((g.within15 == 1).mean()),
-                        "per_point_median": [float(g[f"err{k}"].median()) for k in range(14)]}
-    new = df[(df.labeler == "astra") & (df.sec > 0)].sec
-    summary["astra"]["sec_per_call"] = float(new.mean()) if len(new) else None
-    (out / "summary.json").write_text(json.dumps(summary, indent=2))
+        summary[name] = {"frames": len(g), "points": int(len(errs)), "within7": float((errs <= 7).mean()),
+                         "within15": float((errs <= 15).mean()), "median_err": float(errs.median()),
+                         "frames_all_within15": float((g.within15 == 1).mean()),
+                         "per_point_median": [float(g[f"err{k}"].median()) for k in range(14)]}
+    new = df[(df.labeler == lab) & (df.sec > 0)].sec
+    summary[lab]["sec_per_call"] = float(new.mean()) if len(new) else None
+    summary[lab]["model"], summary[lab]["effort"] = a.model, a.effort
+    summary[lab]["usage"] = usage(out / "cache", a.model, a.effort, keys)
+    (res / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
 
 

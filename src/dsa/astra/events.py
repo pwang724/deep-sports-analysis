@@ -39,7 +39,7 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from dsa.astra.codex import ask
+from dsa.astra.codex import add_model_args, ask, cache_key, run_dir, usage
 from dsa.data.paths import SOURCES, VIDEOS
 
 VIDEOS = VIDEOS / "broadcast"
@@ -189,7 +189,7 @@ FAR_NOTE = (
 )
 
 
-def label_timing(s: dict, images: Path, cache: Path, far: bool) -> dict:
+def label_timing(s: dict, images: Path, cache: Path, far: bool, model: str, effort: str) -> dict:
     c = s["clip"]
     path, far_path = images / f"timing_{s['id']}.jpg", images / f"timing_far_{s['id']}.jpg"
     if not path.exists() or (far and not far_path.exists()):
@@ -197,13 +197,15 @@ def label_timing(s: dict, images: Path, cache: Path, far: bool) -> dict:
         cv2.imwrite(str(path), sheet(frames, 4, 480))
         cv2.imwrite(str(far_path), sheet([far_half(f) for f in frames], 4, 720))
     imgs = [path.resolve(), far_path.resolve()] if far else [path.resolve()]
-    ans, sec = ask(TIMING_PROMPT + (FAR_NOTE if far else ""), imgs, TIMING_SCHEMA, cache)
+    prompt = TIMING_PROMPT + (FAR_NOTE if far else "")
+    ans, sec = ask(prompt, imgs, TIMING_SCHEMA, cache, model=model, effort=effort)
     return {k: v for k, v in s.items() if k != "clip"} | {
         "src": c["src"], "pred_hit": ans["hit_frame"], "pred_hitter": ans["hitter"],
-        "pred_bounce": ans["bounce_frame"], "sec": sec, "image": str(path)}
+        "pred_bounce": ans["bounce_frame"], "sec": sec, "image": str(path),
+        "key": cache_key(model, effort, prompt, TIMING_SCHEMA, imgs)}
 
 
-def label_stroke(s: dict, images: Path, cache: Path, far: bool) -> dict:
+def label_stroke(s: dict, images: Path, cache: Path, far: bool, model: str, effort: str) -> dict:
     c = s["clip"]
     crop = far and s["hitter"] == "far"
     path, far_path = images / f"stroke_{s['id']}.jpg", images / f"stroke_far_{s['id']}.jpg"
@@ -216,10 +218,10 @@ def label_stroke(s: dict, images: Path, cache: Path, far: bool) -> dict:
     if crop:
         prompt += (" The second sheet shows the same frames cropped to the far half of the court and "
                    "enlarged; use it for the far player's grip and swing, and the first for where the ball goes.")
-    ans, sec = ask(prompt, imgs, STROKE_SCHEMA, cache)
+    ans, sec = ask(prompt, imgs, STROKE_SCHEMA, cache, model=model, effort=effort)
     return {k: v for k, v in s.items() if k != "clip"} | {
         "pred_hand": ans["hand"], "pred_technique": ans["technique"], "pred_direction": ans["direction"],
-        "sec": sec, "image": str(path)}
+        "sec": sec, "image": str(path), "key": cache_key(model, effort, prompt, STROKE_SCHEMA, imgs)}
 
 
 def main() -> None:
@@ -228,19 +230,22 @@ def main() -> None:
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--far", action="store_true", help="add enlarged far-court crops")
     p.add_argument("--out", default="output/astra_eval/events")
+    add_model_args(p)
     a = p.parse_args()
 
     out = Path(a.out)
     (out / "images").mkdir(parents=True, exist_ok=True)
+    res = run_dir(out, a.model, a.effort)
+    m = dict(model=a.model, effort=a.effort)
     rng = np.random.default_rng(0)
     cs = clips()
     timing, stroke = timing_samples(cs, a.n, rng), stroke_samples(cs, a.n, rng)
     print(f"{len(cs)} clips; {len(timing)} timing windows, {len(stroke)} strokes", flush=True)
     with ThreadPoolExecutor(a.workers) as pool:
-        t = pd.DataFrame(pool.map(lambda s: label_timing(s, out / "images", out / "cache", a.far), timing))
-        s = pd.DataFrame(pool.map(lambda s: label_stroke(s, out / "images", out / "cache", a.far), stroke))
-    t.to_parquet(out / "timing.parquet", index=False)
-    s.to_parquet(out / "stroke.parquet", index=False)
+        t = pd.DataFrame(pool.map(lambda s: label_timing(s, out / "images", out / "cache", a.far, **m), timing))
+        s = pd.DataFrame(pool.map(lambda s: label_stroke(s, out / "images", out / "cache", a.far, **m), stroke))
+    t.to_parquet(res / "timing.parquet", index=False)
+    s.to_parquet(res / "stroke.parquet", index=False)
 
     has = t[t.hit > 0]
     d = (has.pred_hit - has.hit).abs().where(has.pred_hit > 0)
@@ -261,7 +266,9 @@ def main() -> None:
     }
     new = pd.concat([t.sec, s.sec])
     summary["sec_per_call"] = float(new[new > 0].mean()) if (new > 0).any() else None
-    (out / "summary.json").write_text(json.dumps(summary, indent=2))
+    summary |= m | {"usage": {"timing": usage(out / "cache", a.model, a.effort, set(t.key)),
+                              "stroke": usage(out / "cache", a.model, a.effort, set(s.key))}}
+    (res / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
     rally = s[~s.serve]
     for col in ("technique", "direction"):

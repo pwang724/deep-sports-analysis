@@ -29,7 +29,7 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from dsa.astra.codex import ask
+from dsa.astra.codex import add_model_args, ask, cache_key, run_dir, usage
 
 USO_VIDEO = "data/raw/uso2026_final_highlights.mp4"
 USO_SHOTS = "output/preprocess/uso2026_highlights/shots.json"
@@ -108,7 +108,7 @@ def play_sheet(cap: cv2.VideoCapture, frame: int, fps: float) -> np.ndarray:
     return np.vstack([np.hstack(tiles[:2]), np.hstack(tiles[2:])])
 
 
-def label_one(s: dict, images: Path, cache: Path) -> dict:
+def label_one(s: dict, images: Path, cache: Path, model: str, effort: str) -> dict:
     path = images / f"{s['task']}_{s['source']}_{s['frame']}.jpg"
     if not path.exists():
         if s["task"] == "view":
@@ -118,8 +118,10 @@ def label_one(s: dict, images: Path, cache: Path) -> dict:
             cap = cv2.VideoCapture(f"{PHONE}/{s['source']}/analysis.mp4")
             cv2.imwrite(str(path), play_sheet(cap, s["frame"], cap.get(cv2.CAP_PROP_FPS)))
         cap.release()
-    answer, sec = ask(VIEW_PROMPT if s["task"] == "view" else PLAY_PROMPT, [path], SCHEMA, cache)
-    return {**s, "pred": bool(answer["answer"]), "sec": sec, "image": str(path)}
+    prompt = VIEW_PROMPT if s["task"] == "view" else PLAY_PROMPT
+    answer, sec = ask(prompt, [path], SCHEMA, cache, model=model, effort=effort)
+    return {**s, "pred": bool(answer["answer"]), "sec": sec, "image": str(path),
+            "key": cache_key(model, effort, prompt, SCHEMA, [path])}
 
 
 def mistakes_sheet(df: pd.DataFrame, out: Path, n: int = 8) -> None:
@@ -140,28 +142,33 @@ def main() -> None:
     p.add_argument("--n", type=int, default=50, help="samples per class per task")
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--out", default="output/astra_eval/view_play")
+    add_model_args(p)
     a = p.parse_args()
 
     out = Path(a.out)
     (out / "images").mkdir(parents=True, exist_ok=True)
+    res = run_dir(out, a.model, a.effort)
     rng = np.random.default_rng(0)
     samples = view_samples(a.n, rng) + play_samples(a.n, rng)
     print(f"{len(samples)} samples", flush=True)
     with ThreadPoolExecutor(a.workers) as pool:
-        df = pd.DataFrame(pool.map(lambda s: label_one(s, out / "images", out / "cache"), samples))
-    df.to_parquet(out / "per_sample.parquet", index=False)
+        df = pd.DataFrame(pool.map(lambda s: label_one(s, out / "images", out / "cache", a.model, a.effort),
+                                   samples))
+    df.to_parquet(res / "per_sample.parquet", index=False)
 
     summary = {}
     for task, g in df.groupby("task"):
-        mistakes_sheet(g, out / f"mistakes_{task}.jpg")
+        mistakes_sheet(g, res / f"mistakes_{task}.jpg")
         new = g.sec[g.sec > 0]
         summary[task] = {"n": len(g), "accuracy": float((g.pred == g.truth).mean()),
                          "recall_true": float(g[g.truth].pred.mean()),
                          "recall_false": float((~g[~g.truth].pred).mean()),
-                         "sec_per_call": float(new.mean()) if len(new) else None}
+                         "sec_per_call": float(new.mean()) if len(new) else None,
+                         "model": a.model, "effort": a.effort,
+                         "usage": usage(out / "cache", a.model, a.effort, set(g.key))}
         print(f"\n{task}: accuracy {summary[task]['accuracy']:.1%} on {len(g)}")
         print(pd.crosstab(g.truth, g.pred, rownames=["truth"], colnames=["astra"]).to_string())
-    (out / "summary.json").write_text(json.dumps(summary, indent=2))
+    (res / "summary.json").write_text(json.dumps(summary, indent=2))
 
 
 if __name__ == "__main__":
