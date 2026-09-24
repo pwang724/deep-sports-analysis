@@ -24,6 +24,7 @@ own footage, and the single model is trained on the merged, partial labels.
 | [MODEL.md](MODEL.md) | architecture, early fusion, backbone choice, heads, losses |
 | [DATA.md](DATA.md) | ground truth by task, labelers (incl. Astra via Codex), label format, gold set |
 | [PROGRESS.md](PROGRESS.md) | ordered checklist |
+| [DECISIONS.md](DECISIONS.md) | decisions made along the way (labelers, ...) |
 
 ## Phases
 

@@ -1,6 +1,6 @@
 # Progress
 
-In order. Plan in [README.md](README.md); each "confirm" is Peter's sign-off
+In order. Plan in [README.md](README.md), decisions in [DECISIONS.md](DECISIONS.md); each "confirm" is Peter's sign-off
 on a score table plus the worst misses.
 
 ## Phase 0: choose a labeler per task (public ground truth)
