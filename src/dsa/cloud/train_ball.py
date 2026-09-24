@@ -16,8 +16,8 @@ RacketVision (tennis subset) for the 9ch_rv run:
 
     modal run src/dsa/cloud/train_ball.py::fetch_rv       # Hugging Face -> /vol/datasets/racketvision/tennis
     modal run src/dsa/cloud/train_ball.py::prepare_rv     # labelled frames +- neighbours at 1280 x 720, zipped
-    modal run src/dsa/cloud/train_ball.py::main --variants 9ch --rv --tag _rv --epochs 24 --gpu H100
-    modal run src/dsa/cloud/train_ball.py::main --variants 9ch --rv --no-rv-train --tag _24ep --epochs 24 --gpu H100
+    modal run src/dsa/cloud/train_ball.py::main --variants 9ch --rv --tag _rv --epochs 24 --gpu L40S
+    modal run src/dsa/cloud/train_ball.py::main --variants 9ch --rv --no-rv-train --tag _24ep --epochs 24 --gpu L40S
     (add --resume to either to continue from its last finished epoch on the volume)
     modal run src/dsa/cloud/train_ball.py::bench --gpus H100,L40S,A100-80GB   # s/step, 60 steps each
     modal run src/dsa/cloud/train_ball.py::evaluate --run 9ch   # an old checkpoint on both test sets

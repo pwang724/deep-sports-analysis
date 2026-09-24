@@ -133,3 +133,15 @@ on WASB's labels over our varied footage is the direct fix, plus longer
 training and between-point negatives. WASB remains the ball labeler and
 the fallback until the head matches it on the test set.
 
+## 11. One slim Astra call per keyframe; head top by rule (2026-09-24)
+
+A Codex top-up buys only ~550-600 Astra calls, and each keyframe cost two:
+the scene call and a head-top call. The slim scene call (no duplicate frame,
+320 px time sheet, thin boxes) keeps accuracy on court, view, in play and
+players and uses ~12% instead of ~16% of the meter per 100 keyframes. The
+head-top call is replaced by a rule on ViTPose and the box (1.9 px median
+from Astra) and now labels every frame, not only keyframes. Together about
+3x less Codex use per keyframe. Batching 4 keyframes a call saves a little
+more but within the meter's resolution; held. Sol and Luna were worse than
+Astra on court and in play (RESULTS-training), so Astra stays.
+
