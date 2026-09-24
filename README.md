@@ -46,6 +46,11 @@ download themselves on first use. For the benchmarks, put TennisSegmentation
 `data/tennis_segmentation` and Tennis Player Actions (Mendeley) under
 `data/tennis_player_actions`; see docs/DATASETS.md.
 
+`data/`, `output/` and `models/` are large and git-ignored. On Peter's Mac
+they are symlinks into `/Volumes/PW_SSD/deep-sports-analysis/` (exFAT, so no
+symlinks or virtualenvs inside), and the SSD must be connected to run
+anything.
+
 ## Use
 
 Each video owns its preprocessing code: cut away footage that is not useful

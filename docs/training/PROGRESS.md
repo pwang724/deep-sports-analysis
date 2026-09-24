@@ -6,7 +6,7 @@ on a score table plus the worst misses.
 ## Phase 0: choose a labeler per task (public ground truth)
 
 - [x] Training plan, model and data docs
-- [ ] Move data/, output/, models/ to PW_SSD (symlinks in the repo)
+- [x] Move data/, output/, models/ to PW_SSD (symlinks in the repo)
 - [x] Astra harness: `codex exec` wrapper, output schemas, cache (`dsa.astra`)
 - [x] Joints: Astra vs ViTPose on Tennis Player Actions. Confirmed: ViTPose (0.818 vs 0.743 OKS, 100 images)
 - [x] Neck: shoulder midpoint from ViTPose, no model. Head top: Halpe training data only, checked in the gold set
