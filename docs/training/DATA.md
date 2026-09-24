@@ -12,24 +12,25 @@ Ground truth means labelled by people. Our own model outputs (RF-DETR boxes,
 ViTPose joints, the USO view manifest, audio hit candidates) are **not**
 ground truth; they are labeler output to be scored against it.
 
-| Task | Human ground truth, local now | Human ground truth to download | Gap: must be generated | Next step |
+| Task | Human ground truth, local now | Human ground truth to download | Gap: must be generated | Status / next step |
 |---|---|---|---|---|
-| Person boxes | TennisSegmentation: 197 broadcast frames, both players (masks to boxes). Tennis Player Actions: 2,000 self-recorded images, one player each. | COCO person; TennisExpert boxes | Our phone footage, far player | Score Astra on both local sets; RF-DETR already scored (100% recall on the 197). Every person is labelled; no player / not-player label: players are the tracks the event head names as hitters. |
+| Person boxes | TennisSegmentation: 197 broadcast frames, both players (masks to boxes). Tennis Player Actions: 2,000 self-recorded images, one player each. | COCO person; TennisExpert boxes | Our phone footage, far player | Done: RF-DETR (ties Astra, 100% recall). Every person is labelled; no player / not-player label: players are the tracks the event head names as hitters. |
 | Body joints (17) | Tennis Player Actions: 2,000 images, 17 COCO joints + neck, ~200 px players | COCO keypoints (not tennis) | Far player and broadcast-size players: no public tennis labels | Done: ViTPose confirmed (0.818 vs Astra 0.743 OKS). Hand-label far players in the gold set. |
 | Neck, head top | Tennis Player Actions: neck | Halpe-FullBody (neck, head top) | Tennis head top | Neck = shoulder midpoint of the ViTPose labels. Head top learned from Halpe only; checked in the gold set. |
-| Feet (big toe, small toe, heel, both sides) | COCO-WholeBody val (CC BY-NC; everyday photos, not tennis) | COCO-WholeBody train, Halpe-FullBody | Any tennis footage | Score Astra on COCO-WholeBody val; a pose model only if Astra is weak. Feet need only sparse labels, so Astra's speed is acceptable. Hand-label feet in the gold set. |
-| Racket (5 points) | none | RacketVision: ~150k tennis broadcast frames, racket box + 5 keypoints, not linked to a player | Handheld footage; which player holds it | Download; attach each racket to the nearest wrist; train a racket labeler; score it and Astra (pick among candidates). |
-| Court points | TennisSegmentation court mask (surface, not points; corners only approximate) | TennisCourtDetector: 8,841 frames, 14 points; Roboflow sets | Handheld / phone angles | Download TCD; score Astra (pick among candidate points) and a court model. Hand-label a few hundred own frames. |
-| Ball position | TennisSegmentation ball mask, where visible | TrackNet tennis 20k frames; RacketVision 64k | Handheld footage | Download TrackNet; score WASB and Astra (stop after 50 if poor). |
-| Hit / bounce timing, hitter | none | TrackNet (hit, bounce); E2E-Spot (serve, swing contact, bounce, near / far; videos via YouTube ids) | Handheld footage | Download TrackNet; score Astra on frame strips and the event labeler. |
-| Stroke type | Tennis Player Actions: forehand / backhand / serve / ready, single images | F3Set (fine-grained, videos via YouTube ids); THETIS (12 classes, indoor clips); TennisExpert | Clips from phone footage | Score Astra on Tennis Player Actions now, F3Set later. |
+| Feet (big toe, small toe, heel, both sides) | COCO-WholeBody val (CC BY-NC; everyday photos, not tennis) | COCO-WholeBody train, Halpe-FullBody | Any tennis footage | Done: Astra (0.870 OKS with left / right from the nearest ViTPose ankle). Sparse keyframes only. Hand-label feet in the gold set. |
+| Racket (5 points) | none | RacketVision: ~150k tennis broadcast frames, racket box + 5 keypoints, not linked to a player | Handheld footage; which player holds it | Done: RacketVision's released RTMDet + RTMPose (81% vs Astra 58%); no training. Each racket attached to the nearest ViTPose wrist. |
+| Court points | TennisSegmentation court mask (surface, not points; corners only approximate) | TennisCourtDetector: 8,841 frames, 14 points; Roboflow sets | Handheld / phone angles | Done: Astra per camera shot (ties TennisCourtDetector, 96.7% vs 95.6% within 7 px). Hand-label a few hundred own frames. |
+| Ball position | TennisSegmentation ball mask, where visible | TrackNet tennis 20k frames; RacketVision 64k | Handheld footage | Done: WASB (F1 0.886 vs Astra 0.691 at 4 px). |
+| Hit / bounce timing, hitter | none | TrackNet (hit, bounce); E2E-Spot (serve, swing contact, bounce, near / far; videos via YouTube ids) | Handheld footage | Hitter done: Astra (100% when found). Hit timing deferred: Astra 93% near, 40% far within 2 frames; later a ball + audio + wrist labeler, scored on E2E-Spot / F3Set. |
+| Stroke type | Tennis Player Actions: forehand / backhand / serve / ready, single images | F3Set (fine-grained, videos via YouTube ids); THETIS (12 classes, indoor clips); TennisExpert | Clips from phone footage | Coarse done: Astra 99%. Forehand / backhand: Astra 93% on F3Set. Direction: computed from WASB + court. Technique (slice etc.): open. |
 | View ok | none exact. USO `shots.json` is method output (keeps only the high camera) | none | Everything but the USO clip | **Definition:** a camera behind one baseline, any height, whole court and both players in view. Astra agrees with USO on all shots except the low camera, which this definition counts as usable. Checked in the gold set. |
 | In play | Richard / Dylan cut lists: hand-reviewed but padded activity edits, not strict points | F3Set / E2E-Spot / TennisExpert rally clips | Everything, strictly | **Definition:** serve toss to end of rally; walking, ball bouncing and breaks are out. Cut windows are strict spans plus padding. Astra agrees 82% with the padded windows; scored strictly in the gold set. |
 | Track identity | none | none for tennis | Everything | Measure id switches with `track_metrics`; Astra checks track continuity on sampled pairs. |
 | Contact point | not labelled directly: derived from hit frame + wrist / ball + court homography | | | Evaluated through its inputs. |
 
-Three tasks can be evaluated today without downloads: person boxes, joints,
-coarse stroke type (plus provisional view and in play).
+Phase 0 is scored for every task above except track identity; results in
+[RESULTS-training.md](../RESULTS-training.md), decisions in
+[DECISIONS.md](DECISIONS.md).
 
 ## Footage
 
@@ -63,9 +64,9 @@ Chosen in phase 0 on public ground truth; scores in
 | view | Astra, one frame | 99 / 100 under the agreed definition | provisional: gold set scores it |
 | in play | Astra, 4-frame sheet | 83% vs padded cut lists | provisional: gold set scores it |
 | court | Astra on one keyframe per camera shot, and again wherever the camera moves (court lines tracked frame to frame) | ties TennisCourtDetector (96.7% vs 95.6% within 7 px), better on odd angles; no court model needed | confirmed |
-| events (hit timing) | later: WASB ball direction change + audio onsets + ViTPose wrist speed | Astra finds contact within 2 frames 96% for the near player, 37% for the far one | deferred |
-| hitter, forehand / backhand | Astra on a 12-frame strip around each hit | hitter 100% when the hit is found; forehand / backhand 98% near, 60% far | confirmed |
-| shot direction | computed: WASB ball track mapped onto the court (cross-court, down the line, ...) | Astra 55% by eye | confirmed, to build |
+| events (hit timing) | later: WASB ball direction change + audio onsets + ViTPose wrist speed | Astra finds contact within 2 frames 93% for the near player, 40% for the far one | deferred |
+| hitter, forehand / backhand | Astra on a 12-frame strip around each hit, plus the far half of the court enlarged | hitter 100% when the hit is found; forehand / backhand 93% (98% near, 87% far) | confirmed |
+| shot direction | computed: WASB ball track mapped onto the court (cross-court, down the line, ...) | Astra 61% by eye | confirmed, to build |
 | technique (topspin / slice / volley / ...) | open: ball path after the hit, or a small model on F3Set | Astra found 1 of 11 slices | open |
 
 Labels from two labelers that agree get high confidence; disagreements get low

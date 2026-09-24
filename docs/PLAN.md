@@ -27,6 +27,11 @@ Reference for the pipeline shape and the analysis-heavy style:
 
 ## Models
 
+The original picks, before measurement. Where phase 0 of the training plan
+measured a labeler, [training/DECISIONS.md](training/DECISIONS.md) supersedes
+this table: WASB for the ball, Astra for court points, RacketVision's model for
+rackets, ViTPose-Plus-Huge for joints.
+
 | Problem | Pick | Why |
 |---|---|---|
 | Players | ViTPose-Plus-Large via the VLM Run gateway | Highest COCO accuracy family (ViTPose-G 81.1 AP, nothing has beaten it). No weights, no GPU, cached responses. |

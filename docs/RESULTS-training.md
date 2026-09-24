@@ -123,17 +123,17 @@ Error is relative to racket length (tip to handle; median 64 px in 1080p).
 | RacketVision RTMPose-M on the labelled box | 0.048 | 93% | 97% | 96% |
 | RacketVision RTMDet-M + RTMPose-M, full frame | 0.055 | 81% | 89% | 84% |
 
+Astra's median error per point: tip 0.067, head bottom 0.068, handle 0.098, left
+0.102, right 0.109. Every point is 6-7 px from its label at this size, so
+PCK@0.1 is tight. Even the worst crops have Astra on the right racket with the
+right orientation; the misses are offsets along the shaft or a flipped head
+width. 39 rackets is a small sample.
+
 RacketVision's released model (`dsa.cloud.racket_pose`, one L4 on Modal) on
 the same 39 rackets, all in its test split. Full frame: its detector found 36
 of 39 (IoU >= 0.1 at score >= 0.3); the 3 misses count as 0 PCK, and mean error
 is over the found ones. Median error per point on the labelled box: tip 0.022,
 head bottom 0.017, handle 0.026, left 0.026, right 0.038, a third of Astra's.
-
-Median error per point: tip 0.067, head bottom 0.068, handle 0.098, left
-0.102, right 0.109. Every point is 6-7 px from its label at this size, so
-PCK@0.1 is tight. Even the worst crops have Astra on the right racket with the
-right orientation; the misses are offsets along the shaft or a flipped head
-width. 39 rackets is a small sample.
 
 Where RTMPose gets its box, same 39 rackets (`dsa.cloud.racket_pose`; nearest
 predicted racket scored, none within 0.5 racket lengths = missed):
@@ -222,7 +222,22 @@ before contact, hitter and contact frame given.
 | direction (rallies) | 63% | 43% | 55% |
 | serve direction (T / body / wide) | | | 76% |
 
-Adding the far half of each frame enlarged as a second sheet barely helps
-timing: on the 77 windows scored before Codex ran out of credits, far-player
-contact within 2 frames went 38% -> 41% and misses 9 -> 6. The far player is
-not only a resolution problem. The stroke rerun did not run.
+Rerun with a second sheet: the top 55% of each frame (the far half of the
+court) enlarged, given for every timing window and for far-player strokes
+(`--far`, `output/astra_eval/events_far`). Same samples.
+
+| | first run | with far crop |
+|---|---|---|
+| contact within 2 frames: near / far | 96% / 37% | 93% / 40% |
+| hits missed: near / far | 0 / 10 | 1 / 5 |
+| hitter right when the hit is found | 100% | 100% |
+| bounce within 2 frames | 56% | 61% |
+| forehand / backhand: near / far | 98% / 60% | 98% / **87%** |
+| forehand / backhand, all rallies | 82% | **93%** |
+| technique, all rallies; slices found | 82%; 1 / 11 | 80%; 1 / 11 |
+| direction, rallies: near / far | 63% / 43% | 66% / 53% |
+| serve direction | 76% | 83% |
+
+The crop fixes forehand / backhand for the far player and nothing else: far
+contact timing stays at 40%, slices stay missed (10 of 11 called ground
+strokes), and direction by eye stays near 60%.
