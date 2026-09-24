@@ -109,3 +109,15 @@ The internal disk filled (780 MB free) during downloads. `data/`, `output/`
 and `models/` are symlinks into `/Volumes/PW_SSD/deep-sports-analysis/`
 (exFAT, 336 GB free at the move), so the SSD must be connected to run
 anything, and virtualenvs cannot live there.
+
+## 9. Singles from behind the baseline only, for now (2026-09-23)
+
+Labelling set, test set and the first model cover singles filmed from behind
+a baseline (any height). Doubles, drone, fence-side and side-on footage are
+out of scope: they need 4 players, other hitter logic and other court
+geometry, and the core case is enough to prove the model. Of the first 150
+selected YouTube videos, 29 were doubles and 5 drone or fence; they are
+replaced by singles. Frame by frame, a keyframe where Astra names more than
+2 players is treated like a non-view frame (scene labels only). Doubles can
+come back once singles works.
+
