@@ -135,6 +135,25 @@ PCK@0.1 is tight. Even the worst crops have Astra on the right racket with the
 right orientation; the misses are offsets along the shaft or a flipped head
 width. 39 rackets is a small sample.
 
+Where RTMPose gets its box, same 39 rackets (`dsa.cloud.racket_pose`; nearest
+predicted racket scored, none within 0.5 racket lengths = missed):
+
+| box from | found | PCK@0.1 | PCK@0.2 |
+|---|---|---|---|
+| labelled racket box | 100% | 93% | 97% |
+| RacketVision's RTMDet | 92% | 81% | 89% |
+| RTMDet, else forearm square | 92% | 81% | 89% |
+| forearm square (0.5 x person height, pushed out from the wrist) | 74% | 57% | 63% |
+| wrist square (0.8 x person height) | 74% | 45% | 56% |
+| RF-DETR person box | 18% | 4% | 7% |
+
+The person box is useless: the racket is too small in it. Wrist boxes find
+fewer rackets than the detector, and the forearm fallback recovers none of the
+detector's 3 misses. In every miss a ViTPose wrist is on the handle (within
+0.05 person heights), so the loss is in picking the hand or in the box, not
+in finding the player. The detector stays; wrists assign each racket to a
+player.
+
 RacketVision's model is the racket labeler: about 2 px error against Astra's
 6-7 px, milliseconds against 22 s, and it needs no training. Its detector
 misses 8% of rackets; Astra stays the fallback for those and for our footage
