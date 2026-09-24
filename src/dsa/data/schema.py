@@ -1,10 +1,11 @@
 """The one label format every source is converted to, and the trainer reads.
 
-One directory per source, data/labels/<source>/, holding up to six Parquet
-tables. Every table has a `sample` key, "<source>/<media id>/<frame>" (frame
--1 for a still image), and a `labeler` column naming who made the label: a
-dataset name for human labels ("tracknet"), or a model or Astra with a version
-("wasb", "astra:gpt-6-astra:medium"). A missing row or a NaN value means "not
+One directory per source, data/labels/<source>/, holding up to eight Parquet
+tables. Every table but events and spans has a `sample` key,
+"<source>/<media id>/<frame>" (frame -1 for a still image), and every table a
+`labeler` column naming who made the label: a dataset name for human labels
+("tracknet"), or a model or Astra with a version ("wasb",
+"astra:gpt-6-astra:medium"). A missing row or a NaN value means "not
 labelled" and is masked out of the loss; it never means "absent". Absence is
 stated explicitly (a ball with visible = False, a keypoint with vis = 0).
 
@@ -22,11 +23,18 @@ stated explicitly (a ball with visible = False, a keypoint with vis = 0).
   ball      sample, x, y, visible, labeler
   court     sample, kp (14 x 3), labeler             COURT_POINTS order
   scene     sample, view, in_play, labeler           booleans, NaN = not labelled
-  events    source, media, frame, fps, type, side, hand, technique, direction, outcome, labeler
-            Shots and bounces in video time. type: serve | shot | bounce;
+  events    source, split, media, frame, fps, type, side, hand, technique, direction, outcome, labeler
+            Shots and bounces in video time, at `fps` as labelled. Events have no
+            sample key, so they carry their own split. type: serve | shot | bounce;
             side: near | far; hand: forehand | backhand; technique: gs | slice
             | volley | smash | drop | lob; direction: CC | DL | DM | II | IO
             (shots) or T | B | W (serves). Unlabelled fields are null.
+  spans     source, split, media, start, end, fps, covers, labeler
+            Video ranges where events were labelled exhaustively: frames start
+            (inclusive) to end (exclusive) at `fps`; covers is a comma list of
+            event types ("serve,shot,bounce"). Inside a span, a frame without
+            an event of a covered type is a negative; outside every span,
+            nothing is known.
 
 Coordinates are pixels of the frame at `width` x `height`. Arrays are stored
 as flat float lists and read back with `keypoints()`.
@@ -63,12 +71,14 @@ TABLES = {
     "ball": ["sample", "x", "y", "visible", "labeler"],
     "court": ["sample", "kp", "labeler"],
     "scene": ["sample", "view", "in_play", "labeler"],
-    "events": ["source", "media", "frame", "fps", "type", "side", "hand", "technique", "direction", "outcome",
+    "events": ["source", "split", "media", "frame", "fps", "type", "side", "hand", "technique", "direction", "outcome",
                "labeler"],
+    "spans": ["source", "split", "media", "start", "end", "fps", "covers", "labeler"],
 }
 ARRAYS = {("people", "kp"): (len(KEYPOINTS), 3), ("rackets", "kp"): (5, 3), ("court", "kp"): (14, 3),
           ("people", "box"): (4,), ("rackets", "box"): (4,)}
 SPLITS = {"train", "val", "test"}
+EVENT_TYPES = {"serve", "shot", "bounce"}
 
 
 def sample_id(source: str, media_id: str, frame: int = -1) -> str:
@@ -92,13 +102,18 @@ def validate(table: str, df: pd.DataFrame) -> None:
     missing = set(TABLES[table]) - set(df.columns)
     if missing:
         raise ValueError(f"{table}: missing columns {sorted(missing)}")
-    if table != "events" and df["sample"].isna().any():
+    if "sample" in TABLES[table] and df["sample"].isna().any():
         raise ValueError(f"{table}: empty sample key")
-    if table == "frames":
-        if df["sample"].duplicated().any():
-            raise ValueError("frames: duplicate samples")
-        if not set(df["split"]) <= SPLITS:
-            raise ValueError(f"frames: splits {set(df['split']) - SPLITS}")
+    if table == "frames" and df["sample"].duplicated().any():
+        raise ValueError("frames: duplicate samples")
+    if table == "spans":
+        if (df["end"] <= df["start"]).any():
+            raise ValueError("spans: end not after start")
+        types = {t for c in df["covers"] for t in c.split(",")}
+        if not types <= EVENT_TYPES:
+            raise ValueError(f"spans: covers {types - EVENT_TYPES}")
+    if "split" in TABLES[table] and not set(df["split"]) <= SPLITS:
+        raise ValueError(f"{table}: splits {set(df['split']) - SPLITS}")
     for (t, col), shape in ARRAYS.items():
         if t == table:
             n = int(np.prod(shape))
@@ -118,7 +133,7 @@ def write(source: str, tables: dict[str, pd.DataFrame], root: Path = LABELS) -> 
         if name not in TABLES:
             raise ValueError(f"unknown table {name}")
         validate(name, df)
-        if frames is not None and name not in ("frames", "events"):
+        if frames is not None and "sample" in TABLES[name] and name != "frames":
             orphans = set(df["sample"]) - set(frames["sample"])
             if orphans:
                 raise ValueError(f"{name}: {len(orphans)} samples not in frames, e.g. {next(iter(orphans))}")
