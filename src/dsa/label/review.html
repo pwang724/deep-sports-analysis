@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tennis · gold review</title>
+<style>
+:root{color-scheme:dark;font:14px system-ui;background:#101820;color:#e8edf1}*{box-sizing:border-box}body{margin:0;padding:16px;max-width:1800px;margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:16px}h1{font-size:20px;margin:0}h2{font-size:15px;margin:0 0 10px}
+.tag{color:#c2eb78;font-size:12px;letter-spacing:2px;margin-bottom:4px}main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px}
+.stage{position:relative;background:black;border-radius:10px;overflow:hidden;height:calc(100vh - 130px)}canvas{display:block;width:100%;height:100%;cursor:crosshair}
+.panel{background:#19232d;padding:14px;border-radius:10px;margin-bottom:12px}.muted{color:#a7b4c1;font-size:13px}
+button{font:inherit;color:inherit;background:#253442;border:1px solid #405362;border-radius:6px;padding:6px 10px;cursor:pointer}button:hover{border-color:#c2eb78}
+.primary{background:#c2eb78;color:#142014;border-color:#c2eb78}.row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+kbd{font:12px monospace;background:#253442;padding:1px 5px;border-radius:3px}.keys div{margin:3px 0;font-size:13px}
+.flag{display:inline-block;padding:3px 8px;border-radius:5px;margin-right:6px;background:#253442}.on{background:#c2eb78;color:#142014}
+#missing button{font-size:12px;padding:3px 6px;margin:2px}#message{min-height:20px;color:#c2eb78}.error{color:#ff9a88}
+.legend span{display:inline-block;width:10px;height:10px;border-radius:5px;margin:0 4px 0 10px}
+</style>
+<header><div><div class="tag">TENNIS / GOLD REVIEW</div><h1 id="title">Loading…</h1></div>
+<div><span id="progress" class="muted"></span></div></header>
+<main><section><div class="stage"><canvas id="canvas"></canvas></div></section>
+<aside>
+<div class="panel"><h2>Frame</h2><div id="meta" class="muted"></div>
+<div class="row"><span id="fView" class="flag">view</span><span id="fPlay" class="flag">in play</span><span id="fBall" class="flag">ball</span></div>
+<div class="row"><button id="prev">◀ Prev [P]</button><button id="done" class="primary">Save, next [Enter]</button><button id="unsure">Unsure [U]</button><button id="skip">Skip [S]</button></div>
+<div class="row"><button id="reset">Reset to pre-fill [R]</button><button id="next">Next, no save ▶</button></div>
+<div id="message" role="status"></div></div>
+<div class="panel"><h2>Selected person</h2><div id="person" class="muted">Click a box to select a person.</div><div id="missing"></div></div>
+<div class="panel keys"><h2>Keys</h2>
+<div>Drag a point to move it. Wheel to zoom, drag empty space to pan.</div>
+<div><kbd>right-click</kbd> a point: visible → occluded → out of view</div>
+<div><kbd>B</kbd> ball at the cursor · <kbd>X</kbd> no ball</div>
+<div><kbd>V</kbd> view · <kbd>I</kbd> in play · <kbd>H</kbd> hide labels</div>
+<div><kbd>T</kbd> toggle selected person as player · <kbd>Del</kbd> remove selected</div>
+<div><kbd>0</kbd> reset zoom</div>
+<div class="legend muted">body<span style="background:#5ab4ff"></span>feet / head<span style="background:#ffb454"></span>racket<span style="background:#ff6bd6"></span>court<span style="background:#c2eb78"></span>ball<span style="background:#ffe14d"></span></div>
+</div></aside></main>
+<script>
+const $=id=>document.getElementById(id),cv=$('canvas'),ctx=cv.getContext('2d');
+const SKEL=[[0,1],[0,2],[1,3],[2,4],[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16],[17,18],[15,21],[15,19],[15,20],[16,24],[16,22],[16,23],[25,26],[26,27]];
+const NAMES=["nose","l eye","r eye","l ear","r ear","l shoulder","r shoulder","l elbow","r elbow","l wrist","r wrist","l hip","r hip","l knee","r knee","l ankle","r ankle","neck","head top","l big toe","l small toe","l heel","r big toe","r small toe","r heel","racket tip","racket head bottom","racket handle","racket left","racket right"];
+const COURT=[[0,1],[2,3],[0,2],[1,3],[4,5],[6,7],[8,9],[10,11],[12,13]];
+let frames=[],status={},i=0,cur=null,img=new Image(),view={s:1,x:0,y:0},drag=null,hover=null,sel=null,placing=null,hide=false,mouse={x:0,y:0};
+const color=k=>k<17?'#5ab4ff':k<25?'#ffb454':'#ff6bd6';
+function msg(t,e=false){$('message').textContent=t;$('message').className=e?'error':'';}
+function fit(){const r=cv.getBoundingClientRect();cv.width=r.width*devicePixelRatio;cv.height=r.height*devicePixelRatio;if(!img.width)return;const s=Math.min(cv.width/img.width,cv.height/img.height);view={s,x:(cv.width-img.width*s)/2,y:(cv.height-img.height*s)/2};draw();}
+const toScr=(x,y)=>[view.x+x*view.s,view.y+y*view.s],toImg=(x,y)=>[(x-view.x)/view.s,(y-view.y)/view.s];
+function pts(){const L=cur.labels,out=[];L.people.forEach((p,pi)=>{if(!p.player)return;for(let k=0;k<30;k++){const x=p.kp[3*k];if(x!=null)out.push({kind:'kp',pi,k,x,y:p.kp[3*k+1]});}});
+ if(L.court)for(let k=0;k<14;k++)if(L.court[k][0]!=null)out.push({kind:'court',k,x:L.court[k][0],y:L.court[k][1]});
+ if(L.ball&&L.ball.visible&&L.ball.x!=null)out.push({kind:'ball',x:L.ball.x,y:L.ball.y});return out;}
+function draw(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);if(!img.width||!cur)return;
+ ctx.drawImage(img,view.x,view.y,img.width*view.s,img.height*view.s);if(hide)return;const L=cur.labels,d=devicePixelRatio;ctx.lineWidth=1.5*d;
+ if(L.court){ctx.strokeStyle='#c2eb78aa';for(const[a,b]of COURT){const A=L.court[a],B=L.court[b];if(A[0]==null||B[0]==null)continue;ctx.beginPath();ctx.moveTo(...toScr(A[0],A[1]));ctx.lineTo(...toScr(B[0],B[1]));ctx.stroke();}
+  L.court.forEach((c,k)=>{if(c[0]==null)return;const[x,y]=toScr(c[0],c[1]);ctx.fillStyle=c[2]>0?'#c2eb78':'#666';ctx.beginPath();ctx.arc(x,y,4*d,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.font=`${10*d}px system-ui`;ctx.fillText(k+1,x+5*d,y-5*d);});}
+ L.people.forEach((p,pi)=>{const[x1,y1]=toScr(p.box[0],p.box[1]),[x2,y2]=toScr(p.box[2],p.box[3]);ctx.setLineDash(p.player?[]:[4*d,4*d]);ctx.strokeStyle=pi===sel?'#fff':(p.player?'#5ab4ff':'#5ab4ff66');ctx.strokeRect(x1,y1,x2-x1,y2-y1);ctx.setLineDash([]);
+  if(!p.player)return;const kp=p.kp;ctx.strokeStyle='#ffffff88';for(const[a,b]of SKEL){if(kp[3*a]==null||kp[3*b]==null)continue;ctx.beginPath();ctx.moveTo(...toScr(kp[3*a],kp[3*a+1]));ctx.lineTo(...toScr(kp[3*b],kp[3*b+1]));ctx.stroke();}
+  for(let k=0;k<30;k++){if(kp[3*k]==null)continue;const[x,y]=toScr(kp[3*k],kp[3*k+1]),v=kp[3*k+2];ctx.beginPath();ctx.arc(x,y,(hover&&hover.kind==='kp'&&hover.pi===pi&&hover.k===k?6:4)*d,0,7);
+   if(v>=2){ctx.fillStyle=color(k);ctx.fill();}else{ctx.strokeStyle=v>=1?color(k):'#777';ctx.lineWidth=2*d;ctx.stroke();ctx.lineWidth=1.5*d;}}});
+ if(L.ball&&L.ball.visible&&L.ball.x!=null){const[x,y]=toScr(L.ball.x,L.ball.y);ctx.strokeStyle='#ffe14d';ctx.lineWidth=2*d;ctx.beginPath();ctx.arc(x,y,8*d,0,7);ctx.stroke();}
+ if(hover){ctx.fillStyle='#fff';ctx.font=`${12*d}px system-ui`;const[x,y]=toScr(hover.x,hover.y);ctx.fillText(hover.kind==='kp'?NAMES[hover.k]:hover.kind==='court'?`court ${hover.k+1}`:'ball',x+8*d,y+14*d);}
+ if(placing!==null){ctx.fillStyle='#fff';ctx.font=`${13*d}px system-ui`;ctx.fillText(`click to place: ${NAMES[placing]}`,12*d,22*d);}}
+function flags(){const L=cur.labels;$('fView').className='flag'+(L.view?' on':'');$('fPlay').className='flag'+(L.in_play?' on':'');$('fBall').className='flag'+(L.ball&&L.ball.visible?' on':'');}
+function side(){if(sel===null||!cur.labels.people[sel]){$('person').textContent='Click a box to select a person.';$('missing').replaceChildren();return;}
+ const p=cur.labels.people[sel];$('person').textContent=`#${sel} · ${p.player?'player':'not a player'} · ${p.labeler||'added'}`;
+ const miss=[];for(let k=0;k<30;k++)if(p.kp[3*k]==null){const b=document.createElement('button');b.textContent='+ '+NAMES[k];b.onclick=()=>{placing=k;draw();};miss.push(b);}
+ $('missing').replaceChildren(...(p.player?miss:[]));}
+function progress(){const n=Object.values(status).filter(s=>s).length;$('progress').textContent=`${n} / ${frames.length} reviewed`;}
+async function load(k){i=(k+frames.length)%frames.length;const f=frames[i];cur=await (await fetch(`/api/frame/${i}`)).json();
+ if(!cur.labels)cur.labels=structuredClone(cur.prefill);sel=null;placing=null;
+ $('title').textContent=`Frame ${i+1} of ${frames.length}`;$('meta').textContent=`${cur.sample} · ${f.collection||''} · ${f.camera||''} · ${cur.status?('saved: '+cur.status):'not reviewed'}`;
+ img=new Image();img.onload=()=>{fit();};img.src=`/image/${i}.jpg`;flags();side();msg('');}
+async function save(st){const r=await fetch(`/api/frame/${i}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({labels:cur.labels,status:st})});
+ const d=await r.json();if(!r.ok){msg(d.error,true);return false;}status[cur.sample]=st;progress();return true;}
+function hit(mx,my){let best=null,bd=10*devicePixelRatio;for(const p of pts()){const[x,y]=toScr(p.x,p.y),dd=Math.hypot(x-mx,y-my);if(dd<bd){bd=dd;best=p;}}return best;}
+function set(p,x,y){const L=cur.labels;if(p.kind==='kp'){L.people[p.pi].kp[3*p.k]=x;L.people[p.pi].kp[3*p.k+1]=y;}else if(p.kind==='court'){L.court[p.k][0]=x;L.court[p.k][1]=y;}else{L.ball.x=x;L.ball.y=y;}}
+const ev=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*devicePixelRatio,(e.clientY-r.top)*devicePixelRatio];};
+cv.addEventListener('mousedown',e=>{if(e.button!==0)return;const[mx,my]=ev(e);const[ix,iy]=toImg(mx,my);
+ if(placing!==null&&sel!==null){const kp=cur.labels.people[sel].kp;kp[3*placing]=ix;kp[3*placing+1]=iy;kp[3*placing+2]=2;placing=null;side();draw();return;}
+ const p=hit(mx,my);if(p){drag={p};return;}
+ const pi=cur.labels.people.findIndex(q=>ix>=q.box[0]&&ix<=q.box[2]&&iy>=q.box[1]&&iy<=q.box[3]);
+ if(pi>=0){sel=pi;side();draw();}drag={pan:true,mx,my,vx:view.x,vy:view.y};});
+cv.addEventListener('mousemove',e=>{const[mx,my]=ev(e);mouse={x:mx,y:my};if(drag&&drag.p){const[ix,iy]=toImg(mx,my);set(drag.p,ix,iy);drag.p.x=ix;drag.p.y=iy;draw();return;}
+ if(drag&&drag.pan){view.x=drag.vx+mx-drag.mx;view.y=drag.vy+my-drag.my;draw();return;}const h=hit(mx,my);if(h!==hover){hover=h;draw();}});
+addEventListener('mouseup',()=>{drag=null;});
+cv.addEventListener('contextmenu',e=>{e.preventDefault();const[mx,my]=ev(e),p=hit(mx,my);if(!p)return;const L=cur.labels;
+ if(p.kind==='kp'){const kp=L.people[p.pi].kp,v=kp[3*p.k+2];kp[3*p.k+2]=v>=2?1:v>=1?0:2;}else if(p.kind==='court'){L.court[p.k][2]=L.court[p.k][2]>0?0:2;}draw();});
+cv.addEventListener('wheel',e=>{e.preventDefault();const[mx,my]=ev(e),f=Math.exp(-e.deltaY*0.0015);view.x=mx-(mx-view.x)*f;view.y=my-(my-view.y)*f;view.s*=f;draw();},{passive:false});
+addEventListener('resize',fit);
+addEventListener('keydown',async e=>{if(e.target.tagName==='INPUT')return;const L=cur.labels,k=e.key.toLowerCase();
+ if(k==='enter'){if(await save('done'))load(i+1);}else if(k==='u'){if(await save('unsure'))load(i+1);}else if(k==='s'){if(await save('skip'))load(i+1);}
+ else if(k==='p'||k==='arrowleft')load(i-1);else if(k==='arrowright')load(i+1);else if(k==='r'){cur.labels=structuredClone(cur.prefill);sel=null;side();flags();draw();}
+ else if(k==='v'){L.view=!L.view;flags();}else if(k==='i'){L.in_play=!L.in_play;flags();}else if(k==='h'){hide=!hide;draw();}else if(k==='0')fit();
+ else if(k==='b'){const[x,y]=toImg(mouse.x,mouse.y);L.ball={x,y,visible:true};flags();draw();}else if(k==='x'){L.ball={x:null,y:null,visible:false};flags();draw();}
+ else if(k==='t'&&sel!==null){L.people[sel].player=!L.people[sel].player;side();draw();}
+ else if((k==='delete'||k==='backspace')&&sel!==null){L.people.splice(sel,1);sel=null;side();draw();}else if(k==='escape'){placing=null;draw();}});
+$('prev').onclick=()=>load(i-1);$('next').onclick=()=>load(i+1);$('reset').onclick=()=>{cur.labels=structuredClone(cur.prefill);flags();side();draw();};
+$('done').onclick=async()=>{if(await save('done'))load(i+1);};$('unsure').onclick=async()=>{if(await save('unsure'))load(i+1);};$('skip').onclick=async()=>{if(await save('skip'))load(i+1);};
+(async()=>{const d=await (await fetch('/api/index')).json();frames=d.frames;status=d.status||{};progress();
+ const first=frames.findIndex(f=>!status[f.sample]);load(first<0?0:first);})();
+</script>
