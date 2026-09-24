@@ -18,8 +18,7 @@ on a score table plus the worst misses.
 - [ ] Label format and converters (TrackNet, TennisCourtDetector)
 - [x] Ball: WASB vs Astra on TrackNet, 100 frames: F1@4px 0.886 vs 0.691, @10px 0.962 vs 0.933. Confirmed: WASB; Astra checks disagreements
 - [x] Racket: RacketVision's released RTMDet + RTMPose vs Astra on 39 test-split rackets: PCK@0.1 of racket length 93% (labelled box) / 81% (own detector) vs Astra 58%. Use RacketVision's model; no training needed. Boxes from wrists (74% found) or person boxes (18%) lose to its detector (92%); wrists assign rackets to players
-- [ ] Court labeler: fine-tune on TennisCourtDetector
-- [ ] Court: Astra vs court labeler on TennisCourtDetector, then confirm
+- [x] Court: Astra vs TennisCourtDetector's released model, 100 val frames: within 7 px 96.7% vs 95.6%, median 2.2 vs 1.9 px. Confirmed: Astra, one keyframe per camera shot; no court model trained
 - [ ] Events: Astra vs event labeler on TrackNet (+ E2E-Spot), then confirm
 - [ ] Stroke type, fine: F3Set, then confirm
 

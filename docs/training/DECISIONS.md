@@ -9,7 +9,9 @@ Each labeler was scored against public human labels before use (phase 0).
 Specialist models won wherever one exists: RF-DETR for boxes, ViTPose for
 joints, WASB for the ball, RacketVision's released model for rackets. Astra
 won where nothing we run covers the task: feet, coarse stroke type, view and
-in play. No labeler needed training so far.
+in play, and tied the specialist on court points, which it labels because it
+holds up better on unusual angles and the court changes only when the camera
+moves (one call per camera shot). No labeler needed training so far.
 
 Astra is close on most geometric tasks (ball within 10 px 96% of the time,
 joints 0.74 OKS) but less precise and 16-28 s per call, so it checks

@@ -22,6 +22,10 @@ Two tests, one Astra call per sample:
           1.2 s after), with the hitter and contact frame given. Astra returns
           forehand / backhand, technique and direction.
 
+With --far, both tests add a second sheet: the far half of each frame
+(top 55%) enlarged, for the far player (the stroke test only when the far
+player hits).
+
     python -m dsa.astra.events --n 100
 """
 from __future__ import annotations
@@ -125,10 +129,15 @@ def read(match: str, frames: list[int]) -> list[np.ndarray]:
     return out
 
 
+def far_half(f: np.ndarray) -> np.ndarray:
+    """The top 55% of a broadcast frame, where the far player is: shown larger."""
+    return f[: int(0.55 * f.shape[0])]
+
+
 def sheet(frames: list[np.ndarray], cols: int, width: int) -> np.ndarray:
     tiles = []
     for i, f in enumerate(frames):
-        t = cv2.resize(f, (width, width * 9 // 16))
+        t = cv2.resize(f, (width, round(width * f.shape[0] / f.shape[1])))
         cv2.putText(t, str(i + 1), (8, 34), cv2.FONT_HERSHEY_SIMPLEX, 1.1, (0, 255, 255), 3)
         tiles.append(t)
     return np.vstack([np.hstack(tiles[i:i + cols]) for i in range(0, len(tiles), cols)])
@@ -173,23 +182,40 @@ def stroke_samples(cs: list[dict], n: int, rng) -> list[dict]:
     return out
 
 
-def label_timing(s: dict, images: Path, cache: Path) -> dict:
+FAR_NOTE = (
+    " The second sheet shows the same 16 frames cropped to the far half of the court and enlarged, so the "
+    "far player's racket and the ball near them are easier to see."
+)
+
+
+def label_timing(s: dict, images: Path, cache: Path, far: bool) -> dict:
     c = s["clip"]
-    path = images / f"timing_{s['id']}.jpg"
-    if not path.exists():
-        cv2.imwrite(str(path), sheet(read(c["match"], [c["start"] + s["first"] + i for i in range(16)]), 4, 480))
-    ans, sec = ask(TIMING_PROMPT, [path.resolve()], TIMING_SCHEMA, cache)
+    path, far_path = images / f"timing_{s['id']}.jpg", images / f"timing_far_{s['id']}.jpg"
+    if not path.exists() or (far and not far_path.exists()):
+        frames = read(c["match"], [c["start"] + s["first"] + i for i in range(16)])
+        cv2.imwrite(str(path), sheet(frames, 4, 480))
+        cv2.imwrite(str(far_path), sheet([far_half(f) for f in frames], 4, 720))
+    imgs = [path.resolve(), far_path.resolve()] if far else [path.resolve()]
+    ans, sec = ask(TIMING_PROMPT + (FAR_NOTE if far else ""), imgs, TIMING_SCHEMA, cache)
     return {k: v for k, v in s.items() if k != "clip"} | {
         "src": c["src"], "pred_hit": ans["hit_frame"], "pred_hitter": ans["hitter"],
         "pred_bounce": ans["bounce_frame"], "sec": sec, "image": str(path)}
 
 
-def label_stroke(s: dict, images: Path, cache: Path) -> dict:
+def label_stroke(s: dict, images: Path, cache: Path, far: bool) -> dict:
     c = s["clip"]
-    path = images / f"stroke_{s['id']}.jpg"
-    if not path.exists():
-        cv2.imwrite(str(path), sheet(read(c["match"], [c["start"] + s["first"] + 4 * i for i in range(12)]), 4, 480))
-    ans, sec = ask(stroke_prompt(s["hitter"], 3, s["serve"]), [path.resolve()], STROKE_SCHEMA, cache)
+    crop = far and s["hitter"] == "far"
+    path, far_path = images / f"stroke_{s['id']}.jpg", images / f"stroke_far_{s['id']}.jpg"
+    if not path.exists() or (crop and not far_path.exists()):
+        frames = read(c["match"], [c["start"] + s["first"] + 4 * i for i in range(12)])
+        cv2.imwrite(str(path), sheet(frames, 4, 480))
+        cv2.imwrite(str(far_path), sheet([far_half(f) for f in frames], 4, 720))
+    imgs = [path.resolve(), far_path.resolve()] if crop else [path.resolve()]
+    prompt = stroke_prompt(s["hitter"], 3, s["serve"])
+    if crop:
+        prompt += (" The second sheet shows the same frames cropped to the far half of the court and "
+                   "enlarged; use it for the far player's grip and swing, and the first for where the ball goes.")
+    ans, sec = ask(prompt, imgs, STROKE_SCHEMA, cache)
     return {k: v for k, v in s.items() if k != "clip"} | {
         "pred_hand": ans["hand"], "pred_technique": ans["technique"], "pred_direction": ans["direction"],
         "sec": sec, "image": str(path)}
@@ -199,6 +225,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--n", type=int, default=100)
     p.add_argument("--workers", type=int, default=4)
+    p.add_argument("--far", action="store_true", help="add enlarged far-court crops")
     p.add_argument("--out", default="output/astra_eval/events")
     a = p.parse_args()
 
@@ -209,8 +236,8 @@ def main() -> None:
     timing, stroke = timing_samples(cs, a.n, rng), stroke_samples(cs, a.n, rng)
     print(f"{len(cs)} clips; {len(timing)} timing windows, {len(stroke)} strokes", flush=True)
     with ThreadPoolExecutor(a.workers) as pool:
-        t = pd.DataFrame(pool.map(lambda s: label_timing(s, out / "images", out / "cache"), timing))
-        s = pd.DataFrame(pool.map(lambda s: label_stroke(s, out / "images", out / "cache"), stroke))
+        t = pd.DataFrame(pool.map(lambda s: label_timing(s, out / "images", out / "cache", a.far), timing))
+        s = pd.DataFrame(pool.map(lambda s: label_stroke(s, out / "images", out / "cache", a.far), stroke))
     t.to_parquet(out / "timing.parquet", index=False)
     s.to_parquet(out / "stroke.parquet", index=False)
 

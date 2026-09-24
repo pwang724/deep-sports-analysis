@@ -62,7 +62,7 @@ Chosen in phase 0 on public ground truth; scores in
 | stroke type, coarse | Astra on the frame | 99 / 100 | confirmed |
 | view | Astra, one frame | 99 / 100 under the agreed definition | provisional: gold set scores it |
 | in play | Astra, 4-frame sheet | 83% vs padded cut lists | provisional: gold set scores it |
-| court | court keypoint model fine-tuned on TennisCourtDetector vs Astra | | to test |
+| court | Astra on one keyframe per camera shot, and again wherever the camera moves (court lines tracked frame to frame) | ties TennisCourtDetector (96.7% vs 95.6% within 7 px), better on odd angles; no court model needed | confirmed |
 | events | audio onsets + wrist speed + ball direction change vs Astra; E2E-Spot as second opinion | | to test |
 | stroke type, fine | Astra on a strip around each hit vs F3Set | | to test |
 
