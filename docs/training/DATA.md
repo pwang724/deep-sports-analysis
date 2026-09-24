@@ -158,3 +158,10 @@ sessions), plus 30 minutes of events, strokes, view and in play. Frames are
 pre-filled by the chosen labelers and corrected by hand in the review tool.
 It re-scores every phase-0 choice outside broadcast footage and scores the
 model later.
+
+The 500 are analysis-view frames: a camera behind a baseline with the court in
+view, whatever the players are doing. Frames that are not (close-ups, replays,
+cut-off courts; about half of broadcast) get no pose, ball or court labels;
+10% as many are kept, labelled only for view and in play, so the view head is
+still scored on what it must reject. Frames are oversampled about 2x to get
+there, and Astra's view flag (99/100 in phase 0) does the filtering.
