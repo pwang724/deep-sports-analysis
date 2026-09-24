@@ -4,7 +4,7 @@ data/f3set-tennis/{train,val,test}.json: clips "<match>_<start>_<end>", one
 event per shot (no bounces), label "<side>_<position>_<serve|return|stroke>_
 <fh|bh|->_<technique|->_<direction>_<approach|->_<outcome>" (tokens in
 elements.txt). Stored in whole-video frames (start + frame) of
-videos/broadcast/<match>.mp4. serve -> type serve, return and stroke -> shot;
+videos/f3set/<match>.mp4. serve -> type serve, return and stroke -> shot;
 fh / bh -> forehand / backhand; technique, direction (T / B / W on serves) and
 outcome (in, winner, forced-err, unforced-err) as given. Court position
 (deuce / middle / ad) and the approach flag have no schema field and are
@@ -14,9 +14,11 @@ fps: the clip json truncates it (29.0 for 29.97), so it comes from
 videos.csv, which gives 25, 29.97, 24.975, 23.976 or 30 per match; three
 matches missing from videos.csv (two Roland Garros 2015, Madrid 2019) take
 the json value, a truncated 23 / 24 / 29 read as the NTSC rate (x 1000 /
-1001). Frame numbers are at that fps even where the downloaded video differs
-(the Jabeur match is 59.94 fps on disk). Some matches appear in both
-train and val (the source splits by clip). Each clip is a span covering
+1001). Frame numbers are at that fps; the videos (`python -m
+dsa.data.broadcast`) are downloaded at that rate, so they index the file
+directly. Those three matches have no YouTube id and are not downloaded,
+nor is the Azarenka-Badosa Indian Wells 2021 final (removed from YouTube).
+Some matches appear in both train and val (the source splits by clip). Each clip is a span covering
 "serve,shot" (no bounces). No frames table (see e2e_spot).
 """
 from __future__ import annotations
@@ -41,7 +43,7 @@ def convert() -> dict:
     for split in ("train", "val", "test"):
         for clip in json.load(open(ROOT / f"{split}.json")):
             match, start, end = clip["video"].rsplit("_", 2)
-            media = rel(VIDEOS / "broadcast" / f"{match}.mp4")
+            media = rel(VIDEOS / NAME / f"{match}.mp4")
             rate = fps.get(match) or NTSC.get(clip["fps"], clip["fps"])
             spans.append(span(NAME, split, media, int(start), int(end), rate, "serve,shot"))
             for e in clip["events"]:

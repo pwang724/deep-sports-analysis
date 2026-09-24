@@ -47,11 +47,13 @@ REGISTRY = [
     Source("e2e_spot", "https://github.com/jhong93/spot", "BSD-3 (labels); videos on YouTube",
            "US Open (29.97 fps) / Wimbledon (25 fps) broadcasts by YouTube id, 1080p",
            "events (serve, shot, bounce; side; coarse stroke)", "its train / val / test.json",
-           "only the US Open 2019 final is downloaded (data/videos/broadcast); stroke comments on test only"),
+           "all 28 matches downloaded whole, 720p at the labelled rate (data/videos/e2e_spot, "
+           "python -m dsa.data.broadcast); stroke comments on test only"),
     Source("f3set", "https://github.com/F3Set/F3Set", "see repo; videos on YouTube",
            "151 broadcast matches by YouTube id, 720p, mostly 25 or 29.97 fps (videos.csv)",
            "events (serve, shot; side, hand, technique, direction, outcome)", "its train / val / test.json",
-           "only two test matches are downloaded (data/videos/broadcast)"),
+           "110 of 114 labelled matches downloaded whole, 720p at the labelled rate (data/videos/f3set, "
+           "python -m dsa.data.broadcast); 3 have no YouTube id, 1 was removed"),
 ]
 BY_NAME = {s.name: s for s in REGISTRY}
 

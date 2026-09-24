@@ -3,7 +3,7 @@
 data/tennis/{train,val,test}.json: clips "<match>_<start>_<end>" with fps and
 events {frame (from clip start), label <near|far>_court_<serve|swing|bounce>,
 comment}. Stored in whole-video frames (start + frame) of
-videos/broadcast/<match>.mp4, at the clip's fps as labelled (29.97 for US
+videos/e2e_spot/<match>.mp4, at the clip's fps as labelled (29.97 for US
 Open, 25 for Wimbledon; the per-clip values differ in the 4th decimal).
 swing -> shot; side is the court half of the hitter or of the bounce.
 
@@ -13,8 +13,8 @@ forehand_ / backhand_ + topspin / slice / volley give hand and technique
 and blank add nothing. Each clip is a span covering "serve,shot,bounce"
 (end = the clip name's end, exclusive: end - start = num_frames). No frames
 table: nothing here is per-frame. Two overlapping test clips of the 2019 Wimbledon final
-repeat two shots; exact duplicates are dropped. Only the US Open 2019 final
-is downloaded; media paths are recorded for all 28 matches.
+repeat two shots; exact duplicates are dropped. All 28 matches are
+downloaded whole at 720p and the labelled rate by `python -m dsa.data.broadcast`.
 """
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ def convert() -> dict:
     for split in ("train", "val", "test"):
         for clip in json.load(open(ROOT / f"{split}.json")):
             match, start, end = clip["video"].rsplit("_", 2)
-            media = rel(VIDEOS / "broadcast" / f"{match}.mp4")
+            media = rel(VIDEOS / NAME / f"{match}.mp4")
             spans.append(span(NAME, split, media, int(start), int(end), clip["fps"], "serve,shot,bounce"))
             for e in clip["events"]:
                 side, _, kind = e["label"].split("_")
