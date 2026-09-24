@@ -341,3 +341,46 @@ head top to 1.9 px median, 0.023 of box height (p90 10.5 px) on 269 held-out
 players; where they differ most, Astra was more often the one off the head.
 The head-top call cost ~25% of the meter per 100 calls, more than a scene call.
 
+
+## Codex-free labels on clips_v1 (2026-09-24)
+
+Can court, view, players and in play be labelled without Codex? Scored on
+the 501 clips_v1 keyframes (427 are views by Astra) and on public ground
+truth. "Agreement with Astra" is not ground truth; the TCD val and
+TennisSegmentation scores are. `dsa.label.court_refine`, `dsa.label.codex_free`;
+outputs in output/court_refine/ and output/codex_free/clips_v1/.
+
+**Court snapping** (fit the court model to the nearest white-line pixels;
+fail and keep the input when too few lines support it, the shape is
+implausible, or it lands one line off). TCD val, 100 frames:
+
+| | within 7 px | median px | worst px | snap failed |
+|---|---|---|---|---|
+| TCD | 95.6% | 1.94 | – | – |
+| TCD + snap | 97.9% | 1.60 | – | 4% |
+| Astra | 96.7% | 2.24 | 17.0 | – |
+| **Astra + snap** | **99.7%** | **1.57** | 11.7 | 2% |
+
+On the clips, snapping moves Astra by a median 2.5 px (79% within 7 px of
+Astra) and is accepted on 76% of view keyframes; by eye it fixes Astra's
+5-15 px far-line scatter. Lens distortion (GoPro-style frames) is not modelled.
+
+**TCD as a Codex-free court fails on amateur footage.** It finds a complete
+court on 44% of view keyframes and snaps on 29% (29 of 231 on low
+baseline cameras). Where it does, it often locks onto a court one line off:
+in 10 by-eye disagreements with Astra, TCD + snap was wrong all 10 times.
+
+| task | Codex-free rule | result |
+|---|---|---|
+| View | TCD + snap succeeds | never a false "view", but finds only 29% of Astra's views |
+| Players, on TCD court | people in the playing area, one per half, nearest the centre line | 28% exact set vs Astra (86% where TCD snaps) |
+| Players, on Astra's snapped court | same rule | 86% exact set vs Astra; 3 of 8 disagreements are the rule's fault |
+| Players, TennisSegmentation (195 broadcast frames, ground truth) | RF-DETR + TCD court | **99.0%** exact set (`prefill.players`: 57%) |
+| In play | WASB sees the ball on ≥15 frames within ±1 s, median speed ≥0.1 widths/s | 83% agreement with Astra (82% on held-out clips; "always in play": 70%) |
+
+Astra's combined scene call is itself weak on in play (65% on ground truth),
+so the rule's 48 "yes where Astra says no" are partly Astra's errors; this
+needs ground truth before it replaces anything.
+
+In clips.py, in play is now written on keyframes only (494 of 45,647 scene
+rows), not carried between them.
