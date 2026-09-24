@@ -25,7 +25,7 @@ from pathlib import Path
 
 import modal
 
-RP = Path(__file__).resolve().parents[3] / "data/racketvision_repo/source/RacketPose" if modal.is_local() else Path("/rp")
+RP = Path(__file__).resolve().parents[3] / "data/code/racketvision/source/RacketPose" if modal.is_local() else Path("/rp")
 
 image = (
     modal.Image.debian_slim(python_version="3.10")

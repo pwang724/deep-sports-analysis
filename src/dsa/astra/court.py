@@ -28,10 +28,11 @@ import numpy as np
 import pandas as pd
 
 from dsa.astra.codex import ask
+from dsa.data.paths import SOURCES, CODE, MODELS
 
-ROOT = Path("data/tennis_court_detector/data")
-TCD = Path("data/tcd_repo")
-WEIGHTS = Path("models/tcd/model_tennis_court_det.pt")
+ROOT = SOURCES / "tennis_court_detector/data"
+TCD = CODE / "tennis_court_detector"
+WEIGHTS = MODELS / "tcd/model_tennis_court_det.pt"
 W, H = 1280, 720
 
 POINTS = [

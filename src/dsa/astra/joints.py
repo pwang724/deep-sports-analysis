@@ -21,10 +21,11 @@ import numpy as np
 import pandas as pd
 
 from dsa.astra.codex import ask
+from dsa.data.paths import SOURCES
 from dsa.pose.eval_pose import _score, crop_box, iter_labels, print_summary, summarize
 from dsa.pose.skeleton import COCO17, SKELETON
 
-ROOT = "data/tennis_player_actions/Tennis Player Actions Dataset for Human Pose Estimation"
+ROOT = str(SOURCES / "tennis_player_actions/Tennis Player Actions Dataset for Human Pose Estimation")
 LONG_SIDE = 768
 
 SCHEMA = {

@@ -10,7 +10,7 @@ points. Scored with OKS (COCO-WholeBody foot sigmas) and PCK against:
                score of knowing where the foot is but nothing about its shape
 
 Images are fetched one by one from images.cocodataset.org into
-data/coco_wholebody/val2017. Annotations: coco_wholebody_val_v1.0.json from
+data/sources/coco_wholebody/val2017. Annotations: coco_wholebody_val_v1.0.json from
 github.com/jin-s13/COCO-WholeBody.
 
     python -m dsa.astra.feet --n 100
@@ -28,10 +28,11 @@ import numpy as np
 import pandas as pd
 
 from dsa.astra.codex import ask
+from dsa.data.paths import SOURCES
 from dsa.astra.joints import upscaled_crop
 from dsa.pose.eval_pose import crop_box
 
-ROOT = Path("data/coco_wholebody")
+ROOT = SOURCES / "coco_wholebody"
 FEET = ["l_big_toe", "l_small_toe", "l_heel", "r_big_toe", "r_small_toe", "r_heel"]
 POINTS = ["l_ankle", "r_ankle"] + FEET
 FOOT_SIGMAS = np.array([.068, .066, .066, .092, .094, .094])

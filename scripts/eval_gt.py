@@ -1,6 +1,6 @@
 """Score pose backends against hand-labelled tennis joints, locally.
 
-    python scripts/eval_gt.py --root "data/tennis_player_actions/Tennis Player Actions Dataset for Human Pose Estimation"
+    python scripts/eval_gt.py --root "data/sources/tennis_player_actions/Tennis Player Actions Dataset for Human Pose Estimation"
 
 See dsa.pose.eval_pose for the backends and metrics. For a GPU run use
 src/dsa/cloud/eval_pose.py.

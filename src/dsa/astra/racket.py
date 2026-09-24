@@ -28,8 +28,9 @@ import numpy as np
 import pandas as pd
 
 from dsa.astra.codex import ask
+from dsa.data.paths import SOURCES
 
-ROOT = Path("data/racketvision/tennis")
+ROOT = SOURCES / "racketvision/tennis"
 POINTS = ["top", "bottom", "handle", "left", "right"]
 CROP, LONG_SIDE = 360, 768
 

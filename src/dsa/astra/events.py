@@ -40,10 +40,11 @@ import numpy as np
 import pandas as pd
 
 from dsa.astra.codex import ask
+from dsa.data.paths import SOURCES, VIDEOS
 
-VIDEOS = Path("data/event_videos")
-E2E = Path("data/e2e_spot_repo/data/tennis/test.json")
-F3 = Path("data/f3set_repo/data/f3set-tennis/test.json")
+VIDEOS = VIDEOS / "broadcast"
+E2E = SOURCES / "e2e_spot/data/tennis/test.json"
+F3 = SOURCES / "f3set/data/f3set-tennis/test.json"
 MATCHES = {"usopen_2019_mens_final_medvedev_nadal": "e2e",
            "20210910-M-US_Open-SF-Novak_Djokovic-Alexander_Zverev": "f3",
            "20220906-W-US_Open-QF-Ajla_Tomljanovic-Ons_Jabeur": "f3"}

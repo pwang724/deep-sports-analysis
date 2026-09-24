@@ -65,7 +65,7 @@ def main(out: str = "output/bench_detectors"):
     from dsa.data.tennis_segmentation import load
     from dsa.pose.bench import gt_report
 
-    labels = [s.boxes for s in load(Path("data/tennis_segmentation"))]
+    labels = [s.boxes for s in load(Path("data/sources/tennis_segmentation"))]
     results = list(bench_gt.starmap([(k, kw) for k, kw in CANDIDATES]))
     runs = {r["detector"]: (r.pop("preds"), r) for r in results}
 

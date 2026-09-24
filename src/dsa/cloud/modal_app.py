@@ -158,7 +158,7 @@ def setup(vitpose: str = "models/vitpose-plus-huge", rfdetr_cache: str = "~/.rob
 
 
 @app.local_entrypoint()
-def datasets(root: str = "data"):
+def datasets(root: str = "data/sources"):
     """Upload the labelled datasets used by the benchmarks. Safe to rerun; existing ones are skipped."""
     for name, subdir in (("tennis_segmentation", ""), ("tennis_player_actions", "Tennis Player Actions Dataset for Human Pose Estimation")):
         local = REPO / root / name / subdir

@@ -31,9 +31,10 @@ import pandas as pd
 import yaml
 
 from dsa.astra.codex import ask
+from dsa.data.paths import SOURCES, CODE
 
-ROOT = Path("data/tracknet/TrackNet/Dataset")
-WASB = Path("data/wasb_repo")
+ROOT = SOURCES / "tracknet/TrackNet/Dataset"
+WASB = CODE / "wasb"
 TEST_GAMES = ("game8", "game9", "game10")
 
 SCHEMA = {

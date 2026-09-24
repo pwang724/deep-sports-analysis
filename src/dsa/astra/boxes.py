@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 
 from dsa.astra.codex import ask
+from dsa.data.paths import SOURCES
 from dsa.data.tennis_segmentation import load
 from dsa.pose.bench import gt_recall
 
@@ -80,7 +81,7 @@ def misses_sheet(samples, preds: dict, out: Path, n: int = 8) -> None:
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--root", default="data/tennis_segmentation")
+    p.add_argument("--root", default=str(SOURCES / "tennis_segmentation"))
     p.add_argument("--n", type=int, default=100)
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--rfdetr", default="output/bench_detectors/preds/rfdetr-medium@1152.parquet")

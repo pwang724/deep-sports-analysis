@@ -43,8 +43,9 @@ uv venv --python 3.11 && uv pip install -e ".[cloud,dev]"
 Download ViTPose-Plus-Huge into `models/vitpose-plus-huge`. RF-DETR weights
 download themselves on first use. For the benchmarks, put TennisSegmentation
 (Hugging Face, `julia-wenkmann/TennisSegmentation`) under
-`data/tennis_segmentation` and Tennis Player Actions (Mendeley) under
-`data/tennis_player_actions`; see docs/DATASETS.md.
+`data/sources/tennis_segmentation` and Tennis Player Actions (Mendeley) under
+`data/sources/tennis_player_actions`; see docs/DATASETS.md. The layout of
+`data/` is in `src/dsa/data/paths.py`.
 
 `data/`, `output/` and `models/` are large and git-ignored. On Peter's Mac
 they are symlinks into `/Volumes/PW_SSD/deep-sports-analysis/` (exFAT, so no
