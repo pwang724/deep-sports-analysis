@@ -39,15 +39,15 @@ Each phase ends with a measurement, not a feeling. Numbers go in
    result, a score table plus the worst misses, goes to Peter to confirm
    which labeler (or agreement of both) is used. Joints, person boxes,
    coarse stroke type, view and in play can run on data already local.
-1. **Transfer check on our domain.** A small hand-checked gold set that never
-   enters training: two of our own sessions and two or three YouTube
-   recordings from different courts and camera heights. It confirms the
-   phase-0 choices hold on self-recorded footage (public sets are mostly
-   broadcast and may be in Astra's training data), and scores the model later.
-2. **Footage.** Collect self-recorded tennis from YouTube and similar, 100
-   hours to start. Filter out non-court footage automatically.
-3. **Label factory.** Run every labeler over all footage into one label format
-   with per-label confidence ([DATA.md](DATA.md)). Spot-check samples by hand.
+1. **Labelling set and gold set.** Convert every public dataset with human
+   labels to the one format; collect a diverse YouTube set (courts, cameras,
+   surfaces, levels); run the chosen labelers over it and our own footage;
+   hand-correct ~500 stratified frames into a gold set that never enters
+   training, and re-score the phase-0 choices on it.
+2. **Footage at scale.** Grow the YouTube collection toward 100+ hours where
+   the gold set shows gaps. Filter out non-court footage automatically.
+3. **Label factory.** Run every labeler over all footage into the one label
+   format ([DATA.md](DATA.md#label-format)) on Modal. Spot-check samples.
 4. **Model v0, per frame.** Trunk + view, in-play, player, court heads, no
    temporal module. Compare head by head against the labelers on the gold set.
 5. **Model v1, temporal.** Add the temporal module, audio, event and stroke

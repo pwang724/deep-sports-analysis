@@ -34,16 +34,38 @@ Phase 0 is scored for every task above except track identity; results in
 
 ## Footage
 
-Self-recorded footage is the main source, because that is the target domain
-and there is a lot of it. Look for variety: phone behind the baseline, fence
-mounts, side views, high and low cameras, hard / clay / grass / indoor,
-day and night, singles and doubles, coaching sessions and matches. Start with
-100 hours; grow when the gold-set numbers stop improving.
+The labelling set is broad, not our own sessions: every public dataset with
+human labels (converted as they are) plus a large, diverse collection of
+YouTube tennis recordings, with our own footage as one slice. Diversity
+matters more than volume: hard / clay / grass / indoor courts; cameras behind
+the baseline high and low, fence-mounted, side-on, corner, drone and
+broadcast; day, night and indoor light; singles, doubles, drills, lessons
+and matches; juniors, club, college and pro; phone, GoPro and broadcast
+quality. Start with ~150 videos x 3 one-minute segments; grow by hours when
+the gold-set numbers stop improving.
 
-Store video ids and timestamps, not redistributed video. Downloads stay in the
-ignored `data/` tree. Broadcast and YouTube footage is for training only
-(see the note at the top of DATASETS.md); check each platform's terms before
-bulk downloading.
+YouTube videos are tracked in `data/videos/youtube/manifest.csv` (id, url,
+channel, licence, duration, category, camera, surface, level, segments) and
+fetched with `python -m dsa.data.youtube`. Downloads stay in the ignored
+`data/` tree and are used for training only (see DATASETS.md).
+
+## Data layout
+
+`data/` (on PW_SSD) is organised by role; paths come from `dsa.data.paths`,
+the list of datasets from `dsa.data.sources` (`python -m dsa.data.sources`
+shows what is on disk and converted).
+
+```
+data/
+  sources/<dataset>/     public datasets exactly as released (read only)
+  code/<repo>/           third-party code we run: WASB, RacketVision, TennisCourtDetector
+  videos/broadcast/      E2E-Spot / F3Set test matches
+  videos/youtube/        <video_id>/seg<k>_<start>.mp4 + manifest.csv
+  raw/                   our own recordings (preprocess outputs point here)
+  labels/<source>/       every source in the one label format (below)
+  gold/                  human-reviewed frames
+  scratch/               throwaway images
+```
 
 ## Labelers
 
@@ -108,23 +130,31 @@ codex exec -m gpt-6-astra -s read-only \
 
 ## Label format
 
-One file per clip window, keyed by source frame, every label with a
-`source` (dataset, labeler + version, `astra` + prompt version, or `human`)
-and a `confidence`. Missing means unlabelled, not negative. Source timestamps
-are preserved, as in the preprocessing manifest ([PREPROCESSING.md](../PREPROCESSING.md)).
+Defined in `src/dsa/data/schema.py`; converters in `src/dsa/data/convert/`.
+Each source is a directory of Parquet tables keyed by
+`sample = <source>/<media id>/<frame>`:
 
 ```
-video, fps, frame
-view_ok, in_play                        per frame
-people[]: track, box, keypoints[30][x, y, vis]   17 body, neck, head top, 6 feet, 5 racket
-court[14][x, y, vis]
-ball: x, y, vis                          optional
-events[]: frame, kind (hit|bounce|serve), hitter, stroke
+frames    sample, source, split, media, frame, fps, width, height
+people    sample, person, track, box, kp[30][x, y, vis], stroke, labeler
+rackets   sample, racket, box, kp[5][x, y, vis], person, labeler    before attaching to a wrist
+ball      sample, x, y, visible, labeler
+court     sample, kp[14][x, y, vis], labeler
+scene     sample, view, in_play, labeler
+events    source, media, frame, fps, type, side, hand, technique, direction, outcome, labeler
 ```
+
+Keypoints: 17 COCO body, neck, head top, 6 feet, 5 racket. Every row names
+its `labeler` (a dataset for human labels, or a model / Astra with version).
+A missing row or NaN means unlabelled and is masked from the loss; absence is
+explicit (`visible = False`, `vis = 0`).
 
 ## Gold eval set
 
-Hand-checked, held out by recording, never used for training or for tuning
-prompts: two of our own sessions plus two or three YouTube recordings chosen
-to differ in court and camera. Joints and court points on about 500 frames;
-events, stroke types, view and in play over about 30 minutes.
+Hand-checked, never used for training or for tuning prompts, and held out by
+video: about 500 frames sampled across the labelling set so every camera,
+surface, level and play type is represented (YouTube, broadcast, our own
+sessions), plus 30 minutes of events, strokes, view and in play. Frames are
+pre-filled by the chosen labelers and corrected by hand in the review tool.
+It re-scores every phase-0 choice outside broadcast footage and scores the
+model later.

@@ -30,15 +30,19 @@ on a score table plus the worst misses.
 - [ ] 9-channel RF-DETR Medium + ball head, trained on TrackNet
 - [ ] Compare with WASB on the same held-out split; decide ball head vs WASB
 
-## Phase 1: gold set on our domain
+## Phase 1: labelling set and gold set
 
+- [x] Data layout (`dsa.data.paths`), label schema (`dsa.data.schema`), source registry (`dsa.data.sources`)
+- [ ] Converters for the 8 public sources into data/labels/
+- [ ] YouTube collection: ~150 diverse videos x 3 one-minute segments, manifest
+- [ ] Labeling run: chosen labelers on YouTube, broadcast and own footage
 - [ ] Review tool (correct pre-filled labels)
-- [ ] Label: own sessions + 2-3 YouTube recordings (far-player joints, court, events, strokes, view, in play)
-- [ ] Re-check phase-0 choices on it
+- [ ] Gold set: ~500 frames stratified by camera / surface / level, corrected by hand
+- [ ] Re-score the phase-0 choices on the gold set
 
-## Phases 2-3: footage and labels
+## Phases 2-3: footage at scale and label factory
 
-- [ ] Decide YouTube sourcing (platform terms); collect 100 h; normalize to 30 fps
+- [ ] Grow YouTube toward 100+ hours where the gold set shows gaps; normalize to 30 fps
 - [ ] Label factory on Modal; spot-check samples
 
 ## Phases 4-6: model
