@@ -16,7 +16,7 @@ ground truth; they are labeler output to be scored against it.
 |---|---|---|---|---|
 | Person boxes | TennisSegmentation: 197 broadcast frames, both players (masks to boxes). Tennis Player Actions: 2,000 self-recorded images, one player each. | COCO person; TennisExpert boxes | Our phone footage, far player | Done: RF-DETR (ties Astra, 100% recall). Every person is labelled; no player / not-player label: players are the tracks the event head names as hitters. |
 | Body joints (17) | Tennis Player Actions: 2,000 images, 17 COCO joints + neck, ~200 px players | COCO keypoints (not tennis) | Far player and broadcast-size players: no public tennis labels | Done: ViTPose confirmed (0.818 vs Astra 0.743 OKS). Hand-label far players in the gold set. |
-| Neck, head top | Tennis Player Actions: neck | Halpe-FullBody (neck, head top) | Tennis head top | Neck = shoulder midpoint of the ViTPose labels. Head top learned from Halpe only; checked in the gold set. |
+| Neck, head top | Tennis Player Actions: neck | Halpe-FullBody (neck, head top) | Tennis head top | Neck = shoulder midpoint of the ViTPose labels. Head top: Astra, in the feet call; checked in the gold set. |
 | Feet (big toe, small toe, heel, both sides) | COCO-WholeBody val (CC BY-NC; everyday photos, not tennis) | COCO-WholeBody train, Halpe-FullBody | Any tennis footage | Done: Astra (0.870 OKS with left / right from the nearest ViTPose ankle). Sparse keyframes only. Hand-label feet in the gold set. |
 | Racket (5 points) | none | RacketVision: ~150k tennis broadcast frames, racket box + 5 keypoints, not linked to a player | Handheld footage; which player holds it | Done: RacketVision's released RTMDet + RTMPose (81% vs Astra 58%); no training. Each racket attached to the nearest ViTPose wrist. |
 | Court points | TennisSegmentation court mask (surface, not points; corners only approximate) | TennisCourtDetector: 8,841 frames, 14 points; Roboflow sets | Handheld / phone angles | Done: Astra per camera shot (ties TennisCourtDetector, 96.7% vs 95.6% within 7 px). Hand-label a few hundred own frames. |
@@ -56,7 +56,7 @@ Chosen in phase 0 on public ground truth; scores in
 | person boxes | RF-DETR Medium @ 1152 + ByteTrack (`dsa.pose`) | ties Astra (100% recall), 1000x faster | confirmed |
 | body joints | ViTPose-Plus-Huge on each box | 0.818 OKS vs Astra 0.743 | confirmed |
 | neck | shoulder midpoint of ViTPose | no model needed | confirmed |
-| head top | Halpe training data only | no labeler; checked in the gold set | confirmed |
+| head top | Astra, in the same call as the feet | a simple point; not scored, checked in the gold set | confirmed |
 | feet | Astra on sparse keyframes, left / right taken from the nearest ViTPose ankle | 0.870 OKS; no open 6-foot-point model we run | confirmed |
 | racket | RacketVision RTMDet-M + RTMPose-M (released weights); racket assigned to the nearest ViTPose wrist; Astra where the detector misses | PCK@0.1 81% end to end vs Astra 58%; wrist / person boxes worse | confirmed |
 | ball | WASB tennis weights; Astra checks frames where they disagree | F1@4px 0.886 vs Astra 0.691 | confirmed |

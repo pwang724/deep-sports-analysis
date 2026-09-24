@@ -9,7 +9,7 @@ on a score table plus the worst misses.
 - [x] Move data/, output/, models/ to PW_SSD (symlinks in the repo)
 - [x] Astra harness: `codex exec` wrapper, output schemas, cache (`dsa.astra`)
 - [x] Joints: Astra vs ViTPose on Tennis Player Actions. Confirmed: ViTPose (0.818 vs 0.743 OKS, 100 images)
-- [x] Neck: shoulder midpoint from ViTPose, no model. Head top: Halpe training data only, checked in the gold set
+- [x] Neck: shoulder midpoint from ViTPose, no model. Head top: Astra, in the same call as the feet; checked in the gold set
 - [x] Feet: Astra on COCO-WholeBody val, 100 people: 0.787 OKS, 0.870 with left / right swaps fixed by nearest ViTPose ankle. Confirmed: Astra + ankle side fix
 - [x] Person boxes: Astra vs RF-DETR on TennisSegmentation, 100 frames: tie (100% recall, IoU 0.88-0.90 both). Confirmed: RF-DETR
 - [x] Stroke type, coarse: Astra on Tennis Player Actions: 99% (99 / 100). Confirmed: Astra

@@ -29,7 +29,7 @@ our own footage in the gold set (phase 1).
 | Person boxes | RF-DETR Medium @ 1152 | 100% recall, IoU 0.89-0.90 | Astra: 100%, IoU 0.88-0.90 | tie; 0.02 s vs 28 s per frame |
 | Body joints (17) | ViTPose-Plus-Huge | 0.818 OKS | Astra 0.743 | better, most of all mid-swing (forehand 0.81 vs 0.69) |
 | Neck | shoulder midpoint of ViTPose | | | no model needed |
-| Head top | Halpe training data only | | | no labeler scored; checked in the gold set |
+| Head top | Astra, in the same call as the feet | not scored (no head-top labels downloaded) | | a simple point; checked in the gold set |
 | Feet (6) | Astra, left / right from the nearest ViTPose ankle | 0.870 OKS (0.787 before the side fix) | ankle copy 0.485 | no foot model we run; 10 of 100 swaps are the whole loss |
 | Racket (5) | RacketVision RTMDet-M + RTMPose-M | 81% of points within 0.1 racket length | Astra 58% (given a crop) | 2 px vs 6-7 px error; no training needed |
 | Ball | WASB (tennis weights) | F1 0.886 @ 4 px, 0.962 @ 10 px | Astra 0.691, 0.933 | more precise, fewer false balls (2 vs 5 of 20) |
@@ -48,8 +48,8 @@ our own footage in the gold set (phase 1).
 17 COCO body joints, neck, head top, 6 foot points (big toe, small toe, heel
 per foot) and 5 racket points (tip, head bottom, handle, left and right of the
 head). Feet give stance and split step, the racket gives swing path and
-contact, the head gives gaze and balance. Neck needs no labeler; head top has
-labels only in Halpe, so it is trained there and scored in the gold set.
+contact, the head gives gaze and balance. Neck needs no labeler; head top is
+labelled by Astra in the feet call and checked in the gold set.
 
 ## 4. Specialists over Astra for geometry, Astra for judgment (2026-09-23)
 
