@@ -33,12 +33,19 @@ on a score table plus the worst misses.
 ## Phase 1: labelling set and gold set
 
 - [x] Data layout (`dsa.data.paths`), label schema (`dsa.data.schema`), source registry (`dsa.data.sources`)
-- [ ] Converters for the 8 public sources into data/labels/
-- [ ] YouTube collection: ~150 diverse videos x 3 one-minute segments, manifest
-- [ ] Labeling run: chosen labelers on YouTube, broadcast and own footage
-- [ ] Review tool (correct pre-filled labels)
-- [ ] Gold set: ~500 frames stratified by camera / surface / level, corrected by hand
-- [ ] Re-score the phase-0 choices on the gold set
+- [x] Converters for the 8 public sources into data/labels/ (`python -m dsa.data.convert`), with spans marking exhaustively labelled event ranges
+- [ ] YouTube collection: ~150 diverse videos x 3 one-minute segments, manifest (downloading)
+- [x] Pre-fill (`dsa.label.prefill`): Astra names the players from numbered boxes; view is about the camera only; feet deferred
+- [ ] Clip labeling: labelers over 10 s clips, people tracked, Astra on keyframes (`dsa.label.clips`)
+- [ ] Consistency filters mask bad labels and record why (`dsa.label.consistency`)
+- [ ] Video review: watch clips with labels overlaid, flag what looks wrong; error rate per labeler per footage type
+- [ ] Test set: ~150 diverse view frames + ~15 non-view, suggested from the clips, confirmed by hand in the static tool; hard cases scored separately
+- [ ] Re-score the phase-0 choices on the test set
+
+No per-frame human review of training labels (decided 2026-09-23): the
+specialists + Astra + consistency filters label training data; the human time
+goes into a video spot-check and a small confirmed test set where no public
+ground truth exists (amateur and own footage).
 
 ## Phases 2-3: footage at scale and label factory
 
