@@ -29,8 +29,9 @@ Per clip:
   court      per shot, the per-point median of Astra's keyframe answers,
              written on every in-scope frame of the shot (keyframe rows keep
              their own answer in court.kf_kp, for dsa.label.consistency).
-  scene      every frame with a keyframe in its shot; in_play only where the
-             keyframes around it agree (NaN across a change). scene.singles.
+  scene      view and singles on every frame with a keyframe in its shot (from
+             the nearest keyframe); in_play on keyframes only, NaN between them
+             (a rally can be shorter than KEY_S).
   rackets    RacketVision on Modal on the same frames as people (--no-rackets).
 
 RF-DETR + ViTPose run on Modal L40S by default (--pose modal, dsa.cloud.pose;
@@ -74,7 +75,7 @@ from dsa.astra.codex import NotCached
 from dsa.label.prefill import (ASTRA, PEOPLE, RACKETS, WASB, astra_scene, draw_boxes, head_top_rule, players,
                                   sheet_image)
 
-KEY_S = 2.0                    # Astra keyframe spacing: in play changes on a scale of seconds, a call costs ~20 s
+KEY_S = 2.0                    # Astra keyframe spacing (a call costs ~20 s); in play is labelled on keyframes only
 FLOW_W = 640                   # px width the camera shift is tracked at
 CUT_BHATTACHARYYA = 0.35       # histogram distance of a hard cut; pans and players moving stay under ~0.15
 MIN_SHOT_S = 0.3               # cuts closer than this are one transition (fades, flashes)
@@ -677,10 +678,10 @@ def finish_clip(st: dict, cost: Cost) -> tuple[dict[str, list], dict[str, list]]
         sh = shot_of(shots, f)
         heads = []
         if f in nearest:
-            k, around = nearest[f]
+            k, _ = nearest[f]
             sc = scenes[k]
-            plays = {scenes[j]["in_play"] for j in around}
-            rows["scene"].append({"sample": s, "view": sc["view"], "in_play": plays.pop() if len(plays) == 1 else None,
+            # In play only on the frames Astra looked at: a rally can start and end between two keyframes.
+            rows["scene"].append({"sample": s, "view": sc["view"], "in_play": sc["in_play"] if f in keys else None,
                                   "labeler": ASTRA, "singles": sc["singles"]})
             heads.append("scene")
         if scope[f] == "view":
@@ -859,15 +860,19 @@ def main() -> None:
             (work / "failed.json").write_text(json.dumps(failed, indent=1))
             if failed:
                 log(f"{len(failed)} clips skipped (see {work / 'failed.json'}); rerun the same command to finish them")
+        seen = set()
         for st in states:
             try:
                 r, d = finish_clip(st, cost)
             except Exception as e:                 # a failed Modal call: the other clips still get written
                 log(f"skip {st['clip']['clip'] if isinstance(st.get('clip'), dict) else '?'}: {str(e).strip().splitlines()[-1][:200]}")
                 continue
+            # Two windows cut from one video can overlap: a shared frame keeps the first clip's labels.
+            fresh = {x["sample"] for x in r["frames"]} - seen
+            seen |= fresh
             for k, v in r.items():
-                rows[k] += v
-            dets.update(d)
+                rows[k] += [x for x in v if x["sample"] in fresh]
+            dets.update({k: v for k, v in d.items() if k in fresh})
         timer.add("pass2_wall", time.time() - t0, sum(len(st["labelled"]) for st in states))
     attach_rackets(rows, dets)
     timer.add("total_wall", time.time() - t_start)
