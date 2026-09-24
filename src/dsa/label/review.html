@@ -31,7 +31,8 @@ kbd{font:12px monospace;background:#253442;padding:1px 5px;border-radius:3px}.ke
 <div><kbd>B</kbd> ball at the cursor · <kbd>X</kbd> no ball</div>
 <div><kbd>V</kbd> view · <kbd>I</kbd> in play · <kbd>H</kbd> hide labels</div>
 <div><kbd>T</kbd> toggle selected person as player · <kbd>Del</kbd> remove selected</div>
-<div><kbd>0</kbd> reset zoom</div>
+<div><kbd>Tab</kbd> next player, zoomed · <kbd>Z</kbd> zoom to selected · <kbd>0</kbd> whole frame</div>
+<div>hold <kbd>Space</kbd> to see the frame without labels</div>
 <div class="legend muted">body<span style="background:#5ab4ff"></span>feet / head<span style="background:#ffb454"></span>racket<span style="background:#ff6bd6"></span>court<span style="background:#c2eb78"></span>ball<span style="background:#ffe14d"></span></div>
 </div></aside></main>
 <script>
@@ -39,7 +40,7 @@ const $=id=>document.getElementById(id),cv=$('canvas'),ctx=cv.getContext('2d');
 const SKEL=[[0,1],[0,2],[1,3],[2,4],[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16],[17,18],[15,21],[15,19],[15,20],[16,24],[16,22],[16,23],[25,26],[26,27]];
 const NAMES=["nose","l eye","r eye","l ear","r ear","l shoulder","r shoulder","l elbow","r elbow","l wrist","r wrist","l hip","r hip","l knee","r knee","l ankle","r ankle","neck","head top","l big toe","l small toe","l heel","r big toe","r small toe","r heel","racket tip","racket head bottom","racket handle","racket left","racket right"];
 const COURT=[[0,1],[2,3],[0,2],[1,3],[4,5],[6,7],[8,9],[10,11],[12,13]];
-let frames=[],status={},i=0,cur=null,img=new Image(),view={s:1,x:0,y:0},drag=null,hover=null,sel=null,placing=null,hide=false,mouse={x:0,y:0};
+let frames=[],status={},i=0,cur=null,img=new Image(),view={s:1,x:0,y:0},drag=null,hover=null,sel=null,placing=null,hide=false,peek=false,mouse={x:0,y:0};
 const color=k=>k<17?'#5ab4ff':k<25?'#ffb454':'#ff6bd6';
 function msg(t,e=false){$('message').textContent=t;$('message').className=e?'error':'';}
 function fit(){const r=cv.getBoundingClientRect();cv.width=r.width*devicePixelRatio;cv.height=r.height*devicePixelRatio;if(!img.width)return;const s=Math.min(cv.width/img.width,cv.height/img.height);view={s,x:(cv.width-img.width*s)/2,y:(cv.height-img.height*s)/2};draw();}
@@ -47,15 +48,19 @@ const toScr=(x,y)=>[view.x+x*view.s,view.y+y*view.s],toImg=(x,y)=>[(x-view.x)/vi
 function pts(){const L=cur.labels,out=[];L.people.forEach((p,pi)=>{if(!p.player)return;for(let k=0;k<30;k++){const x=p.kp[3*k];if(x!=null)out.push({kind:'kp',pi,k,x,y:p.kp[3*k+1]});}});
  if(L.court)for(let k=0;k<14;k++)if(L.court[k][0]!=null)out.push({kind:'court',k,x:L.court[k][0],y:L.court[k][1]});
  if(L.ball&&L.ball.visible&&L.ball.x!=null)out.push({kind:'ball',x:L.ball.x,y:L.ball.y});return out;}
+function zoomTo(pi){const b=cur.labels.people[pi].box,w=b[2]-b[0],h=b[3]-b[1],m=0.35*Math.max(w,h),
+  s=Math.min(cv.width/(w+2*m),cv.height/(h+2*m));view={s,x:cv.width/2-(b[0]+w/2)*s,y:cv.height/2-(b[1]+h/2)*s};draw();}
 function draw(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);if(!img.width||!cur)return;
- ctx.drawImage(img,view.x,view.y,img.width*view.s,img.height*view.s);if(hide)return;const L=cur.labels,d=devicePixelRatio;ctx.lineWidth=1.5*d;
+ ctx.drawImage(img,view.x,view.y,img.width*view.s,img.height*view.s);if(hide||peek)return;const L=cur.labels,d=devicePixelRatio;ctx.lineWidth=1.5*d;
  if(L.court){ctx.strokeStyle='#c2eb78aa';for(const[a,b]of COURT){const A=L.court[a],B=L.court[b];if(A[0]==null||B[0]==null)continue;ctx.beginPath();ctx.moveTo(...toScr(A[0],A[1]));ctx.lineTo(...toScr(B[0],B[1]));ctx.stroke();}
-  L.court.forEach((c,k)=>{if(c[0]==null)return;const[x,y]=toScr(c[0],c[1]);ctx.fillStyle=c[2]>0?'#c2eb78':'#666';ctx.beginPath();ctx.arc(x,y,4*d,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.font=`${10*d}px system-ui`;ctx.fillText(k+1,x+5*d,y-5*d);});}
+  L.court.forEach((c,k)=>{if(c[0]==null)return;const[x,y]=toScr(c[0],c[1]);ctx.fillStyle=c[2]>0?'#c2eb78aa':'#666a';ctx.beginPath();ctx.arc(x,y,3*d,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.font=`${10*d}px system-ui`;ctx.fillText(k+1,x+5*d,y-5*d);});}
  L.people.forEach((p,pi)=>{const[x1,y1]=toScr(p.box[0],p.box[1]),[x2,y2]=toScr(p.box[2],p.box[3]);ctx.setLineDash(p.player?[]:[4*d,4*d]);ctx.strokeStyle=pi===sel?'#fff':(p.player?'#5ab4ff':'#5ab4ff66');ctx.strokeRect(x1,y1,x2-x1,y2-y1);ctx.setLineDash([]);
-  if(!p.player)return;const kp=p.kp;ctx.strokeStyle='#ffffff88';for(const[a,b]of SKEL){if(kp[3*a]==null||kp[3*b]==null)continue;ctx.beginPath();ctx.moveTo(...toScr(kp[3*a],kp[3*a+1]));ctx.lineTo(...toScr(kp[3*b],kp[3*b+1]));ctx.stroke();}
-  for(let k=0;k<30;k++){if(kp[3*k]==null)continue;const[x,y]=toScr(kp[3*k],kp[3*k+1]),v=kp[3*k+2];ctx.beginPath();ctx.arc(x,y,(hover&&hover.kind==='kp'&&hover.pi===pi&&hover.k===k?6:4)*d,0,7);
-   if(v>=2){ctx.fillStyle=color(k);ctx.fill();}else{ctx.strokeStyle=v>=1?color(k):'#777';ctx.lineWidth=2*d;ctx.stroke();ctx.lineWidth=1.5*d;}}});
- if(L.ball&&L.ball.visible&&L.ball.x!=null){const[x,y]=toScr(L.ball.x,L.ball.y);ctx.strokeStyle='#ffe14d';ctx.lineWidth=2*d;ctx.beginPath();ctx.arc(x,y,8*d,0,7);ctx.stroke();}
+  if(!p.player)return;const kp=p.kp,r=Math.max(1.2*d,Math.min(4*d,(y2-y1)/45));
+  ctx.strokeStyle='#ffffff66';ctx.lineWidth=Math.max(0.6*d,r/3);for(const[a,b]of SKEL){if(kp[3*a]==null||kp[3*b]==null)continue;ctx.beginPath();ctx.moveTo(...toScr(kp[3*a],kp[3*a+1]));ctx.lineTo(...toScr(kp[3*b],kp[3*b+1]));ctx.stroke();}
+  ctx.lineWidth=Math.max(0.6*d,r/2.5);
+  for(let k=0;k<30;k++){if(kp[3*k]==null)continue;const[x,y]=toScr(kp[3*k],kp[3*k+1]),v=kp[3*k+2],hv=hover&&hover.kind==='kp'&&hover.pi===pi&&hover.k===k;ctx.beginPath();ctx.arc(x,y,hv?Math.max(r*1.8,4*d):r,0,7);
+   ctx.globalAlpha=hv?1:0.6;if(v>=2){ctx.fillStyle=color(k);ctx.fill();}else{ctx.strokeStyle=v>=1?color(k):'#777';ctx.stroke();}ctx.globalAlpha=1;}ctx.lineWidth=1.5*d;});
+ if(L.ball&&L.ball.visible&&L.ball.x!=null){const[x,y]=toScr(L.ball.x,L.ball.y);ctx.strokeStyle='#ffe14dcc';ctx.lineWidth=1.5*d;ctx.beginPath();ctx.arc(x,y,7*d,0,7);ctx.stroke();}
  if(hover){ctx.fillStyle='#fff';ctx.font=`${12*d}px system-ui`;const[x,y]=toScr(hover.x,hover.y);ctx.fillText(hover.kind==='kp'?NAMES[hover.k]:hover.kind==='court'?`court ${hover.k+1}`:'ball',x+8*d,y+14*d);}
  if(placing!==null){ctx.fillStyle='#fff';ctx.font=`${13*d}px system-ui`;ctx.fillText(`click to place: ${NAMES[placing]}`,12*d,22*d);}}
 function flags(){const L=cur.labels;$('fView').className='flag'+(L.view?' on':'');$('fPlay').className='flag'+(L.in_play?' on':'');$('fBall').className='flag'+(L.ball&&L.ball.visible?' on':'');}
@@ -91,7 +96,12 @@ addEventListener('keydown',async e=>{if(e.target.tagName==='INPUT')return;const 
  else if(k==='v'){L.view=!L.view;flags();}else if(k==='i'){L.in_play=!L.in_play;flags();}else if(k==='h'){hide=!hide;draw();}else if(k==='0')fit();
  else if(k==='b'){const[x,y]=toImg(mouse.x,mouse.y);L.ball={x,y,visible:true};flags();draw();}else if(k==='x'){L.ball={x:null,y:null,visible:false};flags();draw();}
  else if(k==='t'&&sel!==null){L.people[sel].player=!L.people[sel].player;side();draw();}
- else if((k==='delete'||k==='backspace')&&sel!==null){L.people.splice(sel,1);sel=null;side();draw();}else if(k==='escape'){placing=null;draw();}});
+ else if((k==='delete'||k==='backspace')&&sel!==null){L.people.splice(sel,1);sel=null;side();draw();}else if(k==='escape'){placing=null;draw();}
+ else if(k==='z'&&sel!==null)zoomTo(sel);
+ else if(k==='tab'){e.preventDefault();const ps=L.people.map((p,j)=>j).filter(j=>L.people[j].player);if(!ps.length)return;
+  sel=ps[(ps.indexOf(sel)+(e.shiftKey?ps.length-1:1))%ps.length];side();zoomTo(sel);}
+ else if(k===' '){e.preventDefault();if(!peek){peek=true;draw();}}});
+addEventListener('keyup',e=>{if(e.key===' '){peek=false;draw();}});
 $('prev').onclick=()=>load(i-1);$('next').onclick=()=>load(i+1);$('reset').onclick=()=>{cur.labels=structuredClone(cur.prefill);flags();side();draw();};
 $('done').onclick=async()=>{if(await save('done'))load(i+1);};$('unsure').onclick=async()=>{if(await save('unsure'))load(i+1);};$('skip').onclick=async()=>{if(await save('skip'))load(i+1);};
 (async()=>{const d=await (await fetch('/api/index')).json();frames=d.frames;status=d.status||{};progress();
