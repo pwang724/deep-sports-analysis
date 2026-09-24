@@ -193,3 +193,36 @@ and a numbered court diagram; it ran no code (checked in the Codex event log).
 A tie; TCD matches its published 1.83 px. TCD's two worst frames are an
 angled Indian Wells camera where it loses points entirely; Astra's worst
 point in 100 frames is 17 px off. Worst frames: `output/astra_eval/court/worst.jpg`.
+
+## Events and fine stroke: Astra on E2E-Spot and F3Set (2026-09-23)
+
+Human labels on three US Open matches (E2E-Spot test: 2019 final; F3Set test:
+Djokovic-Zverev 2021, Tomljanovic-Jabeur 2022), videos downloaded at 720p and
+checked for alignment (`dsa.astra.events`). Astra only: no event model is run.
+22 s per call.
+
+Timing: 16 consecutive frames on one 4 x 4 sheet (480 px tiles). 80 windows
+with a labelled hit, 20 without.
+
+| | near player | far player | all |
+|---|---|---|---|
+| contact within 2 frames | 96% | 37% | 70% (60% within 1) |
+| hit missed | 0 | 10 | 10 / 80 |
+| hitter right when found | | | 100% |
+| hit claimed in an empty window | | | 1 / 20 |
+| bounce within 2 frames (E2E-Spot) | | | 56% of 18 |
+
+Fine stroke: 100 F3Set shots (29 serves), 12 frames 4 apart from 0.3 s
+before contact, hitter and contact frame given.
+
+| | near player | far player | all |
+|---|---|---|---|
+| forehand / backhand (rallies) | 98% | 60% | 82% |
+| technique (rallies) | | | 82%; 1 of 11 slices found |
+| direction (rallies) | 63% | 43% | 55% |
+| serve direction (T / body / wide) | | | 76% |
+
+Adding the far half of each frame enlarged as a second sheet barely helps
+timing: on the 77 windows scored before Codex ran out of credits, far-player
+contact within 2 frames went 38% -> 41% and misses 9 -> 6. The far player is
+not only a resolution problem. The stroke rerun did not run.
