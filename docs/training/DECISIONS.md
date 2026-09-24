@@ -145,3 +145,12 @@ from Astra) and now labels every frame, not only keyframes. Together about
 more but within the meter's resolution; held. Sol and Luna were worse than
 Astra on court and in play (RESULTS-training), so Astra stays.
 
+
+## 12. Ball scored at 10 px; RacketVision's balls go into training (2026-09-24)
+
+TrackNet and RacketVision mark a fast ball 1-2 px apart along its flight,
+so 4 px scores mostly measure which convention a model learned. At 10 px:
+the head trained on TrackNet + RacketVision scores F1 0.950 on TrackNet test
+(WASB 0.957) and 0.926 on unseen RacketVision matches (WASB 0.864), and
+misses 401 visible balls to WASB's 370 (TrackNet only: 766). Labels are not
+shifted to one convention. Numbers: RESULTS-training, "More epochs vs more data".
