@@ -20,9 +20,10 @@ Per clip:
              doubles or crowd) -> scene only. Frames in a shot without a
              keyframe are not labelled at all.
   people     RF-DETR Medium @ 1152 + ViTPose-Plus-Huge on every --stride'th
-             in-scope frame (keyframes always), tracked by IoU + Hungarian
-             within a shot. A track is a player if Astra named it on any
-             keyframe of the shot (at most 2; people.named is Astra's own call
+             in-scope frame (keyframes always), tracked within a shot (centre
+             distance in box heights + IoU, gaps up to 0.5 s). A track is a
+             player if Astra named it on most keyframes it is on, or if it
+             re-acquires a lost player unambiguously (link_players) (at most 2; people.named is Astra's own call
              on keyframes); head top on keyframes only.
   ball       WASB on t-1, t, t+1, every in-scope frame.
   court      per shot, the per-point median of Astra's keyframe answers,
@@ -76,7 +77,13 @@ FLOW_W = 640                   # px width the camera shift is tracked at
 CUT_BHATTACHARYYA = 0.35       # histogram distance of a hard cut; pans and players moving stay under ~0.15
 MIN_SHOT_S = 0.3               # cuts closer than this are one transition (fades, flashes)
 IOU_MATCH = 0.3                # a person box overlaps its previous self at least this much at >= 10 fps
-TRACK_GAP = 5                  # labelled frames a lost track may reappear within
+MATCH_H = 0.5                  # box heights between a track's predicted centre and its next box
+MATCH_H_PER_S = 1.5            # + this per second of gap
+MATCH_RATIO = 0.6              # box heights of one person in neighbouring frames agree this well
+TRACK_GAP_S = 0.5              # s a lost track may reappear within
+REACQ_S = 1.0                  # s a lost player may be re-acquired within (dsa.label.consistency too)
+REACQ_H_PER_S = 3.0            # box heights a second a player may move while lost
+REACQ_MARGIN = 1.5             # the next nearest person must be this much further away
 MAX_PLAYERS = 2                # singles: more named players means doubles or bystanders, out of scope
 EXCLUDED_CAMERAS = {"drone", "fence", "side"}
 JPEG_Q = 95                    # keyframes sent to Modal; q95 moves ViTPose joints by well under a pixel
@@ -167,15 +174,25 @@ def read_range(media: str, a: int, b: int):
 def clip_video(clip: dict, work: Path) -> bytes:
     """The clip re-encoded to near-lossless H.264 (CRF VIDEO_CRF), frame 0 = clip start: what Modal decodes.
 
-    Near-lossless: already at CRF 10 (6 MB) it is closer to the source than JPEG q95 (PSNR 45 vs 44 dB).
+    Encoded from the frames read_range decodes (piped raw), so frame i is exactly local frame start + i;
+    seeking with ffmpeg instead drops frames of some variable-frame-rate sources. Near-lossless: already at
+    CRF 10 (6 MB) it is closer to the source than JPEG q95 (PSNR 45 vs 44 dB).
     """
     out = work / "video" / f"{clip['clip']}.mp4"
     if not out.exists():
         out.parent.mkdir(parents=True, exist_ok=True)
         tmp = out.with_suffix(".tmp.mp4")
-        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{clip['start'] / clip['fps']:.6f}", "-i", str(DATA / clip["media"]),
-                        "-frames:v", str(clip["end"] - clip["start"]), "-fps_mode", "passthrough", "-c:v", "libx264",
-                        "-preset", "veryfast", "-crf", str(VIDEO_CRF), "-pix_fmt", "yuv420p", "-an", str(tmp)], check=True)
+        w, h = clip["width"], clip["height"]
+        enc = subprocess.Popen(["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{w}x{h}",
+                                "-r", f"{clip['fps']}", "-i", "-", "-c:v", "libx264", "-preset", "veryfast",
+                                "-crf", str(VIDEO_CRF), "-pix_fmt", "yuv420p", str(tmp)], stdin=subprocess.PIPE)
+        n = 0
+        for _, bgr in read_range(clip["media"], clip["start"], clip["end"]):
+            enc.stdin.write(np.ascontiguousarray(bgr).tobytes())
+            n += 1
+        enc.stdin.close()
+        if enc.wait() or n != clip["end"] - clip["start"]:
+            raise RuntimeError(f"clip_video {clip['clip']}: ffmpeg {enc.returncode}, {n} frames")
         tmp.replace(out)
     return out.read_bytes()
 
@@ -285,6 +302,13 @@ class ModalPose:
         return Pending(calls, self.cost)
 
 
+class Offline:
+    """Stands in for the pose and racket models in --offline: anything not cached is an error (clip skipped)."""
+
+    def __getattr__(self, name):
+        raise RuntimeError(f"--offline: not cached ({name})")
+
+
 class Pending:
     def __init__(self, calls, cost: Cost):
         self.calls, self.cost, self.value, self.lock = calls, cost, None, threading.Lock()
@@ -304,12 +328,10 @@ class Pending:
 def scan(clip: dict, local: Local, timer: Timer) -> dict:
     """Pass 1: shots, camera shift and WASB on every frame of the clip.
 
-    Camera shift is the median motion of up to 400 corners tracked by
-    Lucas-Kanade from the shot's first frame (re-seeded when fewer than 20
-    survive): players are a minority of corners, so the median is the camera.
+    Camera shift: CameraTrack, from the shot's first frame.
     """
     a, b = clip["start"], clip["end"]
-    hist_prev, cuts, shift, ball = None, [a], {}, {}
+    hist_prev, cuts, shift, ball, camera = None, [a], {}, {}, CameraTrack()
     buf, t0, wasb0 = [], time.time(), timer.sec["wasb"]
     scale = clip["width"] / FLOW_W
     for f, bgr in read_range(clip["media"], a - 1, b + 1):
@@ -321,19 +343,8 @@ def scan(clip: dict, local: Local, timer: Timer) -> dict:
             if hist_prev is not None and cv2.compareHist(hist_prev, hist, cv2.HISTCMP_BHATTACHARYYA) > CUT_BHATTACHARYYA \
                     and f - cuts[-1] >= MIN_SHOT_S * clip["fps"]:
                 cuts.append(f)
-            if f == cuts[-1] or len(pts) < 20:
-                base = np.zeros(2) if f == cuts[-1] else cam
-                pts0 = cv2.goodFeaturesToTrack(gray, 400, 0.01, 8)
-                pts0 = np.zeros((0, 2), np.float32) if pts0 is None else pts0.reshape(-1, 2)
-                pts = pts0.copy()
-            else:
-                nxt, st, _ = cv2.calcOpticalFlowPyrLK(gray_prev, gray, pts.reshape(-1, 1, 2), None, winSize=(21, 21),
-                                                      maxLevel=3)
-                ok = st.ravel() == 1
-                pts0, pts = pts0[ok], nxt.reshape(-1, 2)[ok]
-            cam = base + (np.median(pts - pts0, 0) if len(pts) else 0)
-            shift[f] = tuple(cam * scale)
-            hist_prev, gray_prev = hist, gray
+            shift[f] = tuple(camera.step(gray, f == cuts[-1]) * scale)
+            hist_prev = hist
         buf = (buf + [(f, bgr)])[-3:]
         if len(buf) == 3 and a <= buf[1][0] < b:
             ball[buf[1][0]] = local.ball([x for _, x in buf])
@@ -345,7 +356,45 @@ def scan(clip: dict, local: Local, timer: Timer) -> dict:
     for s0, s1 in shots:
         if not any(s0 <= k < s1 for k in keys):
             keys.append((s0 + s1) // 2)
-    return {"shots": shots, "keys": sorted(keys), "shift": shift, "ball": ball}
+    return {"shots": shots, "keys": sorted(keys), "shift": shift, "ball": ball, "camera": CameraTrack.VERSION}
+
+
+class CameraTrack:
+    """Camera shift (pan as a 2D translation, FLOW_W pixels) since the shot's first frame, summed frame to frame:
+    400 fresh corners of the previous frame tracked by Lucas-Kanade, kept if they track back to within
+    0.5 px, and the median motion of those within 1 px of the median (players are a minority of corners).
+    Fresh corners each frame: corners tracked from the shot start end up on the players as the background
+    ones are lost, and their median jumps."""
+    VERSION = 2
+
+    def __init__(self):
+        self.prev, self.cam = None, np.zeros(2)
+
+    def step(self, gray: np.ndarray, cut: bool) -> np.ndarray:
+        if self.prev is None or cut:
+            self.cam = np.zeros(2)
+        else:
+            p0 = cv2.goodFeaturesToTrack(self.prev, 400, 0.01, 8)
+            if p0 is not None and len(p0) >= 8:
+                p1, st, _ = cv2.calcOpticalFlowPyrLK(self.prev, gray, p0, None, winSize=(21, 21), maxLevel=3)
+                pb, st2, _ = cv2.calcOpticalFlowPyrLK(gray, self.prev, p1, None, winSize=(21, 21), maxLevel=3)
+                ok = (st.ravel() == 1) & (st2.ravel() == 1) & (np.linalg.norm((pb - p0).reshape(-1, 2), axis=1) < 0.5)
+                d = (p1 - p0).reshape(-1, 2)[ok]
+                if len(d) >= 8:
+                    m = np.median(d, 0)
+                    inl = np.linalg.norm(d - m, axis=1) < 1.0
+                    self.cam = self.cam + (np.median(d[inl], 0) if inl.sum() >= 8 else m)
+        self.prev = gray
+        return self.cam.copy()
+
+
+def camera_shift(clip: dict, shots: list[tuple[int, int]]) -> dict[int, tuple[float, float]]:
+    """CameraTrack over a clip whose shots are known (to update a cached scan)."""
+    cuts, camera, shift = {s0 for s0, _ in shots}, CameraTrack(), {}
+    for f, bgr in read_range(clip["media"], clip["start"], clip["end"]):
+        small = cv2.resize(bgr, (FLOW_W, round(FLOW_W * bgr.shape[0] / bgr.shape[1])), interpolation=cv2.INTER_AREA)
+        shift[f] = tuple(camera.step(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY), f in cuts) * clip["width"] / FLOW_W)
+    return shift
 
 
 def shot_of(shots, f: int) -> int:
@@ -425,28 +474,107 @@ def iou(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return inter / (area(a)[:, None] + area(b)[None] - inter + 1e-9)
 
 
-def track(frames: list[int], people: dict[int, list[dict]], start_id: int) -> tuple[dict[tuple[int, int], int], int]:
-    """IoU + Hungarian tracker over the labelled frames of one shot. Returns {(frame, person): track id}."""
-    live: dict[int, tuple[np.ndarray, int]] = {}      # id -> (last box, frames since seen)
-    out, nxt = {}, start_id
+def track(frames: list[int], people: dict[int, list[dict]], start_id: int, fps: float
+          ) -> tuple[dict[tuple[int, int], int], int]:
+    """Tracker over the labelled frames of one shot. Returns {(frame, person): track id}.
+
+    A track predicts its box centre from its velocity; a detection matches it when the centre is within
+    MATCH_H (+ MATCH_H_PER_S per second of gap) box heights of the prediction and the heights agree
+    (Hungarian on distance minus IoU, so big overlapping boxes still pair by IoU). Distance in box heights
+    keeps small, fast far players; a lost track waits TRACK_GAP_S for its person to come back."""
+    live: dict[int, dict] = {}
+    out, nxt, wait = {}, start_id, max(1, round(TRACK_GAP_S * fps))
     for f in frames:
         boxes = np.array([p["box"] for p in people[f]], float).reshape(-1, 4)
+        cen = (boxes[:, :2] + boxes[:, 2:]) / 2
+        hts = boxes[:, 3] - boxes[:, 1]
         ids = list(live)
         assigned = {}
         if ids and len(boxes):
-            m = iou(np.array([live[i][0] for i in ids]), boxes)
-            for r, c in zip(*linear_sum_assignment(-m)):
-                if m[r, c] >= IOU_MATCH:
+            cost = np.full((len(ids), len(boxes)), 1e6)
+            ov = iou(np.array([live[t]["box"] for t in ids]), boxes)
+            for r, t in enumerate(ids):
+                L = live[t]
+                gap = f - L["f"]
+                d = np.linalg.norm(L["c"] + L["v"] * gap - cen, axis=1) / np.maximum(L["h"], hts)
+                ratio = np.minimum(L["h"], hts) / np.maximum(L["h"], hts)
+                ok = ((d <= MATCH_H + MATCH_H_PER_S * gap / fps) & (ratio >= MATCH_RATIO)) | (ov[r] >= IOU_MATCH)
+                cost[r, ok] = d[ok] - ov[r, ok]
+            for r, c in zip(*linear_sum_assignment(cost)):
+                if cost[r, c] < 1e6:
                     assigned[c] = ids[r]
-        for i in list(live):
-            live[i] = (live[i][0], live[i][1] + 1)
         for c in range(len(boxes)):
             if c not in assigned:
                 assigned[c], nxt = nxt, nxt + 1
-            live[assigned[c]] = (boxes[c], 0)
-            out[(f, c)] = assigned[c]
-        live = {i: v for i, v in live.items() if v[1] <= TRACK_GAP}
+            t = assigned[c]
+            if t in live:
+                L = live[t]
+                v = (cen[c] - L["c"]) / (f - L["f"])
+                live[t] = {"box": boxes[c], "c": cen[c], "h": hts[c], "v": 0.5 * L["v"] + 0.5 * v, "f": f}
+            else:
+                live[t] = {"box": boxes[c], "c": cen[c], "h": hts[c], "v": np.zeros(2), "f": f}
+            out[(f, c)] = t
+        live = {t: L for t, L in live.items() if f - L["f"] <= wait}
     return out, nxt
+
+
+def reacquire_gate(gap_frames: int, fps: float) -> float:
+    """Box heights a player may move over a gap: a sprint is ~3 heights a second."""
+    return MATCH_H + REACQ_H_PER_S * gap_frames / fps
+
+
+def link_players(frames: list[int], people: dict[int, list[dict]], tracks: dict[tuple[int, int], int],
+                 named: set[int], keyframes: set[int], court: np.ndarray | None, fps: float) -> None:
+    """Re-acquire lost players: a player track that ends (or starts) mid-shot continues as the track that
+    starts (or ends) within REACQ_S, nearest its last (first) box, in the playing area, when no other person
+    there is nearly as close. Tracks Astra saw on a keyframe and did not name are never players. In place."""
+    from dsa.label.consistency import box_in_area
+
+    rows = defaultdict(list)                   # track -> [(frame, person)]
+    for f in frames:
+        for i in range(len(people[f])):
+            rows[tracks[(f, i)]].append((f, i))
+    seen_on_key = {t for t, r in rows.items() if any(f in keyframes for f, _ in r)}
+    box = lambda fi: np.asarray(people[fi[0]][fi[1]]["box"], float)
+    cen = lambda b: (b[:2] + b[2:]) / 2
+    area_ok = lambda b: court is None or box_in_area(b, court)
+    changed = True
+    while changed:
+        changed = False
+        for p in sorted(named):
+            if p not in rows:
+                continue
+            for end, ahead in ((rows[p][-1], True), (rows[p][0], False)):
+                b0 = box(end)
+                cands = []
+                for t, r in rows.items():
+                    if t in named or t in seen_on_key:
+                        continue
+                    first = r[0] if ahead else r[-1]
+                    gap = first[0] - end[0] if ahead else end[0] - first[0]
+                    if not 0 < gap <= REACQ_S * fps:
+                        continue
+                    b = box(first)
+                    d = np.linalg.norm(cen(b) - cen(b0)) / max(b[3] - b[1], b0[3] - b0[1])
+                    if d <= reacquire_gate(gap, fps) and area_ok(b):
+                        cands.append((d, t, first[0]))
+                if not cands:
+                    continue
+                d, t, f = min(cands)
+                # anyone else in the playing area at that frame nearly as close: ambiguous, leave it
+                others = [np.linalg.norm(cen(np.asarray(q["box"], float)) - cen(b0)) / max(q["box"][3] - q["box"][1], b0[3] - b0[1])
+                          for i, q in enumerate(people[f]) if tracks[(f, i)] not in (t, p) and tracks[(f, i)] not in named
+                          and area_ok(np.asarray(q["box"], float))]
+                if any(o < REACQ_MARGIN * d + 0.1 for o in others):
+                    continue
+                moved = rows.pop(t)
+                for fi in moved:
+                    tracks[fi] = p
+                rows[p] = sorted(rows[p] + moved)
+                changed = True
+                break
+            if changed:
+                break
 
 
 def submit_clip(clip: dict, info: dict, scenes: dict[int, dict], items: dict[int, dict], pose, stride: int,
@@ -476,6 +604,8 @@ def submit_clip(clip: dict, info: dict, scenes: dict[int, dict], items: dict[int
             return {"clip": clip, "info": info, "scenes": scenes, "items": items, "scope": scope, "nearest": nearest,
                     "labelled": labelled, "todo": todo, "people": Done(c["people"]), "racket_calls": [],
                     "dets": c["dets"], "cache": cached}
+    if isinstance(pose, Offline):
+        raise RuntimeError(f"--offline: no Modal results cached for {clip['clip']}")
     video = clip_video(clip, work) if labelled and (remote or rackets is not None) else None
     if remote:
         people = pose.submit_clip(video, [f - start for f in todo])
@@ -515,12 +645,29 @@ def finish_clip(st: dict, cost: Cost) -> tuple[dict[str, list], dict[str, list]]
     tracks, nxt = {}, 0
     for s in range(len(shots)):
         fs = [f for f in labelled if shot_of(shots, f) == s]
-        t, nxt = track(fs, people, nxt)
+        t, nxt = track(fs, people, nxt, fps)
         tracks.update(t)
-    player_tracks = defaultdict(set)
+    # A track is a player when Astra named it on most of the keyframes it is on (a whole-shot track would
+    # otherwise take one keyframe's slip everywhere; dsa.label.consistency masks the close votes).
+    votes = defaultdict(lambda: [0, 0])
     for k in keys:
         if scope.get(k) == "view":
-            player_tracks[kshot[k]] |= {tracks[(k, i)] for i in scenes[k]["chosen"] if (k, i) in tracks}
+            for i in range(len(people[k])):
+                votes[(kshot[k], tracks[(k, i)])][i in scenes[k]["chosen"]] += 1
+    player_tracks = defaultdict(set)
+    for (sh, t), (no, yes) in votes.items():
+        if yes > no:
+            player_tracks[sh].add(t)
+    for s in range(len(shots)):
+        fs = [f for f in labelled if shot_of(shots, f) == s]
+        ks = [j for j in keys if kshot[j] == s and scope.get(j) == "view"]
+        courts = [scenes[j]["court"] for j in ks if scenes[j]["court"] is not None]
+        court = None
+        if courts:
+            stack = np.stack(courts)
+            court = np.column_stack([np.median(stack[:, :, :2], 0), np.where((stack[:, :, 2] > 0).mean(0) >= 0.5, 2.0, 0.0)])
+        if fs and player_tracks[s]:
+            link_players(fs, people, tracks, player_tracks[s], set(ks), court, fps)
     src = clip["source"]
     rows = defaultdict(list)
     for f in range(clip["start"], clip["end"]):
@@ -612,6 +759,9 @@ def main() -> None:
     p.add_argument("--no-rackets", action="store_true", help="skip the Modal racket step")
     p.add_argument("--pose", choices=["modal", "local"], default="modal",
                    help="RF-DETR + ViTPose on Modal GPUs (dsa.cloud.pose) or on this machine")
+    p.add_argument("--offline", action="store_true",
+                   help="rebuild the tables from the caches only (scan, keyframes, Astra, Modal): no Modal, no "
+                        "Astra calls; clips missing a cache are skipped")
     a = p.parse_args()
     faulthandler.register(signal.SIGUSR1, all_threads=True)      # kill -USR1 <pid> prints every thread's stack
 
@@ -626,6 +776,10 @@ def main() -> None:
     diagram(work / "diagram.png")
     timer, cost = Timer(), Cost()
     t_start = time.time()
+    if a.offline:
+        import os
+        os.environ["DSA_ASTRA_CACHE_ONLY"] = "1"         # dsa.astra.codex.ask: a miss raises instead of calling
+        a.pose, a.no_rackets = "offline", True
     local = Local(timer, pose=a.pose == "local")
     timer.add("load_models", time.time() - t_start)
 
@@ -641,9 +795,11 @@ def main() -> None:
     with contextlib.ExitStack() as stack, ThreadPoolExecutor(a.workers) as pool:
         for app in apps:
             stack.enter_context(app.run())
-        pose = ModalPose(cost) if a.pose == "modal" else local
+        pose = ModalPose(cost) if a.pose == "modal" else Offline() if a.pose == "offline" else local
         if not a.no_rackets:
             rackets = Rackets()
+        elif a.offline:
+            rackets = Offline()                          # the cached racket detections are kept
         # Pass 1 on the main thread (WASB on the local GPU); each clip's pass 2 goes to Modal from a second
         # thread as soon as its Astra answers are in, so Astra, uploads and Modal overlap the scan.
         # With local pose, pass 2 runs after the scan instead: the local GPU is busy with WASB until then.
@@ -674,10 +830,19 @@ def main() -> None:
                 cached = work / "scan" / f"{c['clip']}.pkl"
                 if cached.exists():
                     info = pickle.loads(cached.read_bytes())
+                    if info.get("camera") != CameraTrack.VERSION:     # an older camera track: redo just that
+                        info["shift"], info["camera"] = camera_shift(c, info["shots"]), CameraTrack.VERSION
+                        cached.write_bytes(pickle.dumps(info))
                 else:
                     info = scan(c, local, timer)
                     cached.parent.mkdir(exist_ok=True)
                     cached.write_bytes(pickle.dumps(info))
+                real_end = max(info["shift"], default=c["start"] - 1) + 1
+                if real_end < c["end"]:           # the container's frame count overestimates: the video ends early
+                    log(f"{c['clip']}: video ends at frame {real_end}, not {c['end']}")
+                    c["end"] = real_end
+                    info["shots"] = [(s0, min(s1, real_end)) for s0, s1 in info["shots"] if s0 < real_end]
+                    info["keys"] = [k for k in info["keys"] if k < real_end]
                 try:
                     items = keyframe_items(c, info["keys"], pose, work)
                 except Exception as e:             # e.g. Modal spend limit
