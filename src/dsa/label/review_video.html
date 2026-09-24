@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tennis · video review</title>
+<style>
+:root{color-scheme:dark;font:14px system-ui;background:#101820;color:#e8edf1}*{box-sizing:border-box}body{margin:0;padding:16px;max-width:1800px;margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:16px}h1{font-size:20px;margin:0}h2{font-size:15px;margin:0 0 10px}
+.tag{color:#c2eb78;font-size:12px;letter-spacing:2px;margin-bottom:4px}main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px}
+.stage{position:relative;background:black;border-radius:10px;overflow:hidden;height:calc(100vh - 190px)}video,canvas#overlay{position:absolute;inset:0;width:100%;height:100%}video{object-fit:contain}
+canvas#timeline{display:block;width:100%;height:34px;margin-top:8px;border-radius:6px;background:#19232d;cursor:pointer}
+.panel{background:#19232d;padding:14px;border-radius:10px;margin-bottom:12px}.muted{color:#a7b4c1;font-size:13px}
+button{font:inherit;color:inherit;background:#253442;border:1px solid #405362;border-radius:6px;padding:6px 10px;cursor:pointer}button:hover{border-color:#c2eb78}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}kbd{font:12px monospace;background:#253442;padding:1px 5px;border-radius:3px}.keys div{margin:3px 0;font-size:13px}
+.flag{display:inline-block;padding:3px 8px;border-radius:5px;margin-right:6px;background:#253442}.on{background:#c2eb78;color:#142014}.off{background:#ff5a4a55}
+#message{min-height:20px;color:#c2eb78}.error{color:#ff9a88}#flags div{display:flex;justify-content:space-between;font-size:13px;padding:2px 0;cursor:pointer}#flags div:hover{color:#c2eb78}
+.legend span{display:inline-block;width:10px;height:10px;border-radius:5px;margin:0 4px 0 10px}#prompt{position:absolute;left:12px;top:12px;background:#000c;padding:8px 12px;border-radius:8px;display:none;color:#ffe14d}
+</style>
+<header><div><div class="tag">TENNIS / VIDEO REVIEW</div><h1 id="title">Loading…</h1></div>
+<div><span id="progress" class="muted"></span></div></header>
+<main><section><div class="stage" id="stage"><video id="video" muted playsinline loop preload="auto"></video><canvas id="overlay"></canvas><div id="prompt"></div></div>
+<canvas id="timeline"></canvas></section>
+<aside>
+<div class="panel"><h2>Clip</h2><div id="meta" class="muted"></div>
+<div class="row"><span id="fView" class="flag">view</span><span id="fPlay" class="flag">in play</span><span id="fSingles" class="flag">singles</span><span id="fDone" class="flag">done</span></div>
+<div id="frameinfo" class="muted"></div>
+<div class="row"><button id="prev">◀ Prev [P]</button><button id="play">Play [Space]</button><button id="done">Done [D]</button><button id="next">Next ▶ [N]</button></div>
+<div id="message" role="status"></div></div>
+<div class="panel"><h2>Flags <span id="nflags" class="muted"></span></h2><div id="flags" class="muted">None yet.</div></div>
+<div class="panel keys"><h2>Keys</h2>
+<div><kbd>Space</kbd> play / pause · <kbd>,</kbd> <kbd>.</kbd> one frame · <kbd>[</kbd> <kbd>]</kbd> speed</div>
+<div><kbd>F</kbd> then a digit flags this moment:</div>
+<div id="taglist" class="muted"></div>
+<div><kbd>Backspace</kbd> remove the flag at or before the playhead · <kbd>Esc</kbd> cancel</div>
+<div><kbd>N</kbd> / <kbd>P</kbd> next / previous clip · <kbd>D</kbd> clip done</div>
+<div><kbd>H</kbd> hide labels · click the timeline to seek</div>
+<div class="legend muted">body<span style="background:#5ab4ff"></span>head<span style="background:#ffb454"></span>racket<span style="background:#ff6bd6"></span>court<span style="background:#c2eb78"></span>ball<span style="background:#ffe14d"></span>filtered out<span style="background:#ff5a4a"></span></div>
+</div></aside></main>
+<script>
+const $=id=>document.getElementById(id),vid=$('video'),cv=$('overlay'),ctx=cv.getContext('2d'),tl=$('timeline'),tctx=tl.getContext('2d');
+const SKEL=[[0,1],[0,2],[1,3],[2,4],[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16],[17,18]];
+const RSKEL=[[0,1],[1,2],[3,0],[0,4],[3,1],[4,1]];
+const COURT=[[0,1],[2,3],[0,2],[1,3],[4,5],[6,7],[8,9],[10,11],[12,13]];
+const SPEEDS=[0.25,0.5,1,1.5,2],RED='#ff5a4a';
+let clips=[],status={},tags={},ci=0,cur=null,frame=0,hide=false,pending=null,speed=2,saved={flags:[],done:false};
+const color=k=>k<17?'#5ab4ff':k<25?'#ffb454':'#ff6bd6';
+function msg(t,e=false){$('message').textContent=t;$('message').className=e?'error':'';}
+function geom(){const d=devicePixelRatio,W=cv.width,H=cv.height,s=Math.min(W/cur.width,H/cur.height);return{d,s,ox:(W-cur.width*s)/2,oy:(H-cur.height*s)/2};}
+function fit(){const r=cv.getBoundingClientRect();cv.width=r.width*devicePixelRatio;cv.height=r.height*devicePixelRatio;const t=tl.getBoundingClientRect();tl.width=t.width*devicePixelRatio;tl.height=t.height*devicePixelRatio;draw();}
+function nearest(key){if(!cur)return null;for(let o=0;o<=3;o++){const f=cur.frames[frame-o];if(f&&f[key]&&(!Array.isArray(f[key])||f[key].length))return[f,o];}return[cur.frames[frame],0];}
+function draw(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);if(!cur)return;timeline();info();if(hide)return;
+ const F=cur.frames[frame];if(!F)return;const{d,s,ox,oy}=geom(),P=(x,y)=>[ox+x*s,oy+y*s];
+ const sc=F.scene||{};if(F.scope!=='view'){ctx.fillStyle='#000a';ctx.fillRect(0,0,cv.width,34*d);ctx.fillStyle='#ffb454';ctx.font=`${14*d}px system-ui`;
+  ctx.fillText(F.scope==='nonview'?'Not an analysis view: scene labels only':F.scope==='doubles'?'More than 2 players named: out of scope, scene labels only':'No keyframe in this shot: unlabelled',12*d,23*d);}
+ if(F.court){const k=F.court.kp,m=new Set(F.court.masked);for(const[a,b]of COURT){if(k[3*a]==null||k[3*b]==null)continue;ctx.strokeStyle=(m.has(a)||m.has(b))?RED+'77':'#c2eb78aa';ctx.lineWidth=1.5*d;ctx.beginPath();ctx.moveTo(...P(k[3*a],k[3*a+1]));ctx.lineTo(...P(k[3*b],k[3*b+1]));ctx.stroke();}
+  for(let q=0;q<14;q++){if(k[3*q]==null)continue;const[x,y]=P(k[3*q],k[3*q+1]);ctx.fillStyle=m.has(q)?RED+'99':k[3*q+2]>0?'#c2eb78aa':'#666a';ctx.beginPath();ctx.arc(x,y,3*d,0,7);ctx.fill();}}
+ const[PF,age]=nearest('people');for(const p of PF.people){const[x1,y1]=P(p.box[0],p.box[1]),[x2,y2]=P(p.box[2],p.box[3]),pm=p.player_masked.length>0;
+  ctx.setLineDash(p.player?[]:[4*d,4*d]);ctx.lineWidth=1.5*d;ctx.strokeStyle=pm?RED+'aa':p.player?'#5ab4ffcc':'#5ab4ff44';ctx.strokeRect(x1,y1,x2-x1,y2-y1);ctx.setLineDash([]);
+  if(p.player||pm){ctx.fillStyle=pm?RED:'#5ab4ff';ctx.font=`${11*d}px system-ui`;ctx.fillText(p.track.split('#').pop()+(pm?' ('+p.player_masked.join(', ')+')':''),x1,y1-4*d);}
+  const kp=p.kp,m=new Set(p.masked),r=Math.max(1.2*d,Math.min(4*d,(y2-y1)/45)),alpha=p.player?0.65:0.25;
+  ctx.lineWidth=Math.max(0.6*d,r/3);for(const[a,b]of SKEL){if(kp[3*a]==null||kp[3*b]==null)continue;ctx.strokeStyle=(m.has(a)||m.has(b))?RED+'55':`rgba(255,255,255,${alpha*0.6})`;ctx.beginPath();ctx.moveTo(...P(kp[3*a],kp[3*a+1]));ctx.lineTo(...P(kp[3*b],kp[3*b+1]));ctx.stroke();}
+  for(let k=0;k<25;k++){if(kp[3*k]==null)continue;const[x,y]=P(kp[3*k],kp[3*k+1]);ctx.beginPath();ctx.arc(x,y,m.has(k)?r*1.4:r,0,7);ctx.globalAlpha=m.has(k)?0.6:alpha;
+   ctx.fillStyle=m.has(k)?RED:color(k);if(m.has(k)||kp[3*k+2]>=2)ctx.fill();else{ctx.strokeStyle=color(k);ctx.stroke();}ctx.globalAlpha=1;}}
+ const[RF]=nearest('rackets');for(const rk of RF.rackets){const k=rk.kp;ctx.strokeStyle=rk.person==null?'#ff6bd677':'#ff6bd6cc';ctx.lineWidth=1.5*d;
+  for(const[a,b]of RSKEL){if(k[3*a]==null||k[3*b]==null)continue;ctx.beginPath();ctx.moveTo(...P(k[3*a],k[3*a+1]));ctx.lineTo(...P(k[3*b],k[3*b+1]));ctx.stroke();}}
+ if(F.ball&&F.ball.x!=null){const[x,y]=P(F.ball.x,F.ball.y),bm=F.ball.masked.length>0;ctx.strokeStyle=bm?RED+'aa':'#ffe14dcc';ctx.lineWidth=1.5*d;ctx.beginPath();ctx.arc(x,y,7*d,0,7);ctx.stroke();
+  if(bm){ctx.fillStyle=RED;ctx.font=`${11*d}px system-ui`;ctx.fillText(F.ball.masked.join(', '),x+9*d,y-9*d);}}
+ if(age){ctx.fillStyle='#fff8';ctx.font=`${11*d}px system-ui`;ctx.fillText(`people from ${age} frame${age>1?'s':''} back (stride)`,12*d,cv.height-10*d);}}
+function info(){const F=cur.frames[frame]||{},sc=F.scene||{},set=(id,v,m)=>{$(id).className='flag'+(m&&m.length?' off':v?' on':'');};
+ set('fView',sc.view,sc.masked&&sc.masked.view);set('fPlay',sc.in_play,sc.masked&&sc.masked.in_play);set('fSingles',sc.singles);$('fDone').className='flag'+(saved.done?' on':'');
+ const bits=[`frame ${cur.start+frame} (+${frame}) · ${(frame/cur.fps).toFixed(2)} s · ${vid.playbackRate}x`];
+ if(sc.masked){for(const h of['view','in_play'])if(sc.masked[h].length)bits.push(`${h} filtered: ${sc.masked[h].join(', ')}`);}
+ if(F.court&&F.court.why.length)bits.push(`court filtered: ${F.court.why.join(', ')}`);$('frameinfo').textContent=bits.join(' · ');}
+function timeline(){const W=tl.width,H=tl.height,n=cur.end-cur.start,x=f=>f/n*W,d=devicePixelRatio;tctx.clearRect(0,0,W,H);
+ for(let f=0;f<n;f++){const F=cur.frames[f];if(!F)continue;tctx.fillStyle=F.scope==='view'?'#2f4d2a':F.scope==='doubles'?'#5a4020':'#2a3440';tctx.fillRect(x(f),0,Math.ceil(W/n)+1,H*0.45);
+  const bad=(F.ball&&F.ball.masked.length)||F.people.some(p=>p.masked.length||p.player_masked.length)||(F.court&&F.court.masked.length);
+  if(bad){tctx.fillStyle=RED+'88';tctx.fillRect(x(f),H*0.45,Math.ceil(W/n)+1,H*0.2);}}
+ for(const fl of saved.flags){tctx.fillStyle='#ffe14d';tctx.fillRect(x(fl.frame)-d,H*0.65,2*d,H*0.35);}
+ tctx.fillStyle='#fff';tctx.fillRect(x(frame)-d,0,2*d,H);}
+function flagList(){$('nflags').textContent=saved.flags.length?`(${saved.flags.length})`:'';if(!saved.flags.length){$('flags').textContent='None yet.';return;}
+ $('flags').replaceChildren(...saved.flags.map(f=>{const el=document.createElement('div');el.innerHTML=`<span>${f.tag}</span><span>${(f.frame/cur.fps).toFixed(2)} s</span>`;el.onclick=()=>seek(f.frame);return el;}));}
+function progress(){const n=Object.values(status).filter(s=>s.done).length;$('progress').textContent=`${n} / ${clips.length} clips done`;}
+async function persist(){const r=await fetch(`/api/clip/${ci}/flags`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(saved)});
+ if(!r.ok){msg('save failed',true);return;}status[cur.clip]={done:saved.done,flags:saved.flags.length};progress();}
+function seek(f){frame=Math.max(0,Math.min(cur.end-cur.start-1,f));vid.currentTime=(frame+0.5)/cur.fps;draw();}
+function onFrame(now,md){if(cur){frame=Math.max(0,Math.min(cur.end-cur.start-1,Math.round(md.mediaTime*cur.fps)));draw();}vid.requestVideoFrameCallback(onFrame);}
+async function load(k){ci=(k+clips.length)%clips.length;const c=clips[ci];cur=null;pending=null;$('prompt').style.display='none';$('title').textContent=`Clip ${ci+1} of ${clips.length}`;msg('loading labels…');
+ const d=await (await fetch(`/api/clip/${ci}`)).json();cur=d;saved=d.saved;frame=0;
+ $('meta').textContent=`${c.clip} · ${c.collection||''} · ${c.camera||''} · ${c.surface||''} · ${c.level||''} · ${c.fps.toFixed(2)} fps`;
+ msg('loading video…');vid.src=`/video/${ci}.mp4`;vid.playbackRate=SPEEDS[speed];vid.oncanplay=()=>{msg('');vid.oncanplay=null;vid.playbackRate=SPEEDS[speed];vid.play();};flagList();fit();}
+function next(dir){load(ci+dir);}
+addEventListener('keydown',async e=>{if(!cur)return;const k=e.key.toLowerCase();
+ if(pending!==null){if(k in tags){e.preventDefault();saved.flags.push({frame:pending.frame,tag:tags[k]});saved.flags.sort((a,b)=>a.frame-b.frame);pending.resume&&vid.play();pending=null;$('prompt').style.display='none';flagList();draw();persist();msg(`flagged ${tags[k]}`);}
+  else if(k==='escape'){pending.resume&&vid.play();pending=null;$('prompt').style.display='none';}return;}
+ if(k===' '){e.preventDefault();vid.paused?vid.play():vid.pause();}
+ else if(k===','||k==='.'){vid.pause();seek(frame+(k===','?-1:1));}
+ else if(k==='['||k===']'){speed=Math.max(0,Math.min(SPEEDS.length-1,speed+(k===']'?1:-1)));vid.playbackRate=SPEEDS[speed];draw();}
+ else if(k==='f'){pending={frame,resume:!vid.paused};vid.pause();$('prompt').style.display='block';$('prompt').textContent=`Flag at ${(frame/cur.fps).toFixed(2)} s: `+Object.entries(tags).map(([a,b])=>`${a} ${b}`).join(' · ')+' · Esc cancel';}
+ else if(k==='backspace'){e.preventDefault();if(saved.flags.length){const last=saved.flags.reduce((a,b,i)=>b.frame<=frame?i:a,saved.flags.length-1);saved.flags.splice(last,1);flagList();draw();persist();msg('flag removed');}}
+ else if(k==='n')next(1);else if(k==='p')next(-1);else if(k==='h'){hide=!hide;draw();}
+ else if(k==='d'){saved.done=!saved.done;await persist();draw();if(saved.done){const j=clips.findIndex((c,i)=>i>ci&&!(status[c.clip]||{}).done);if(j>=0)load(j);else msg('all clips done');}}});
+tl.addEventListener('click',e=>{if(!cur)return;const r=tl.getBoundingClientRect();vid.pause();seek(Math.floor((e.clientX-r.left)/r.width*(cur.end-cur.start)));});
+vid.addEventListener('seeked',()=>{if(cur&&vid.paused){frame=Math.max(0,Math.min(cur.end-cur.start-1,Math.floor(vid.currentTime*cur.fps)));draw();}});
+vid.addEventListener('play',()=>{$('play').textContent='Pause [Space]';});vid.addEventListener('pause',()=>{$('play').textContent='Play [Space]';});
+$('prev').onclick=()=>next(-1);$('next').onclick=()=>next(1);$('play').onclick=()=>vid.paused?vid.play():vid.pause();
+$('done').onclick=async()=>{saved.done=!saved.done;await persist();draw();};
+addEventListener('resize',fit);
+if('requestVideoFrameCallback' in HTMLVideoElement.prototype)vid.requestVideoFrameCallback(onFrame);
+else{const tick=()=>{if(cur&&!vid.paused){frame=Math.max(0,Math.min(cur.end-cur.start-1,Math.floor(vid.currentTime*cur.fps)));draw();}requestAnimationFrame(tick);};tick();}
+(async()=>{const d=await (await fetch('/api/index')).json();clips=d.clips;status=d.status||{};tags=d.tags;progress();
+ $('taglist').textContent=Object.entries(tags).map(([k,v])=>`${k} ${v}`).join(' · ');
+ const first=clips.findIndex(c=>!(status[c.clip]||{}).done);load(first<0?0:first);})();
+</script>

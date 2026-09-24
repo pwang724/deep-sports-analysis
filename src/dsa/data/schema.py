@@ -1,6 +1,6 @@
 """The one label format every source is converted to, and the trainer reads.
 
-One directory per source, data/labels/<source>/, holding up to eight Parquet
+One directory per source, data/labels/<source>/, holding up to nine Parquet
 tables. Every table but events and spans has a `sample` key,
 "<source>/<media id>/<frame>" (frame -1 for a still image), and every table a
 `labeler` column naming who made the label: a dataset name for human labels
@@ -35,6 +35,12 @@ stated explicitly (a ball with visible = False, a keypoint with vis = 0).
             event types ("serve,shot,bounce"). Inside a span, a frame without
             an event of a covered type is a negative; outside every span,
             nothing is known.
+  flags     sample, head, reason, labeler, person, point
+            Labels an automatic consistency check (dsa.label.consistency) set to
+            NaN, and why. head: ball | court | pose | players | racket | view |
+            in_play; labeler: the labeler of the masked label; person (people
+            row) and point (keypoint or court point index) are NaN when the
+            check masks the whole head of the sample.
 
 Coordinates are pixels of the frame at `width` x `height`. Arrays are stored
 as flat float lists and read back with `keypoints()`.
@@ -74,6 +80,7 @@ TABLES = {
     "events": ["source", "split", "media", "frame", "fps", "type", "side", "hand", "technique", "direction", "outcome",
                "labeler"],
     "spans": ["source", "split", "media", "start", "end", "fps", "covers", "labeler"],
+    "flags": ["sample", "head", "reason", "labeler", "person", "point"],
 }
 ARRAYS = {("people", "kp"): (len(KEYPOINTS), 3), ("rackets", "kp"): (5, 3), ("court", "kp"): (14, 3),
           ("people", "box"): (4,), ("rackets", "box"): (4,)}
