@@ -54,7 +54,9 @@ Each phase ends with a measurement, not a feeling. Numbers go in
    heads, and contact point.
 6. **Self-training.** The model relabels the footage; Astra and hand review
    look only where the model and labelers disagree or confidence is low;
-   retrain. Repeat while gold-set numbers improve.
+   retrain. Repeat while gold-set numbers improve. Sources, batch mix and
+   the loop: [DATA.md](DATA.md#what-each-source-labels-2026-09-26),
+   [MODEL.md](MODEL.md#training-strategy-proposed-2026-09-26).
 
 ## Done when
 

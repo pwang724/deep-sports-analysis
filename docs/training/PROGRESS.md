@@ -34,12 +34,15 @@ on a score table plus the worst misses.
 
 - [x] Data layout (`dsa.data.paths`), label schema (`dsa.data.schema`), source registry (`dsa.data.sources`)
 - [x] Converters for the 8 public sources into data/labels/ (`python -m dsa.data.convert`), with spans marking exhaustively labelled event ranges
-- [ ] YouTube collection: ~150 diverse videos x 3 one-minute segments, manifest (downloading)
+- [x] YouTube collection: 150 diverse videos x 3 one-minute segments, manifest
+- [x] Broadcast event data: F3Set 110 of 114 matches (262 h; 3 have no YouTube id, 1 removed) and E2E-Spot 28 of 28 (73 h), full videos at the labelled fps (`dsa.data.broadcast`)
 - [x] Pre-fill (`dsa.label.prefill`): Astra names the players from numbered boxes; view is about the camera only; feet deferred
-- [ ] Clip labeling: labelers over 10 s clips, people tracked, Astra on keyframes (`dsa.label.clips`)
-- [ ] Consistency filters mask bad labels and record why (`dsa.label.consistency`)
-- [ ] Video review: watch clips with labels overlaid, flag what looks wrong; error rate per labeler per footage type
-- [ ] Test set: ~150 diverse view frames + ~15 non-view, suggested from the clips, confirmed by hand in the static tool; hard cases scored separately
+- [x] Clip labeling: labelers over 10 s clips, people tracked, Astra on keyframes, court snapped to lines (`dsa.label.clips`): clips_v1, 100 clips, 45.6k frames
+- [x] Consistency filters mask bad labels and record why, incl. the Codex-free player rule (`dsa.label.consistency`)
+- [x] Video review tool (`dsa.label.review_video`)
+- [ ] Video review by Peter: watch clips with labels overlaid, flag what looks wrong; error rate per labeler per footage type
+- [x] Test set suggested: 147 random view frames + 15 non-view + 30 hard, 67 videos held out (`dsa.label.testset`, data/gold/v1)
+- [ ] Test set confirmed by hand in the static tool
 - [ ] Re-score the phase-0 choices on the test set
 
 No per-frame human review of training labels (decided 2026-09-23): the
@@ -54,6 +57,7 @@ ground truth exists (amateur and own footage).
 
 ## Phases 4-6: model
 
+- [ ] Training set: fill-in labels on broadcast sources, batch mix ([DATA.md](DATA.md#batch-mix-proposed), [MODEL.md](MODEL.md#training-strategy-proposed-2026-09-26))
 - [ ] v0 per frame (people, court, ball, view, in play)
 - [ ] v1 temporal (events, stroke, identity, audio)
-- [ ] Self-training rounds
+- [ ] Self-training rounds: Astra only on doubtful keyframes

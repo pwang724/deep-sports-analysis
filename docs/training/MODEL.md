@@ -104,6 +104,53 @@ its label exists, weighted by label confidence ([DATA.md](DATA.md)). Mix
 batches across sources and balance by head, not frame count. A window of one
 frame trains only the per-frame heads.
 
+## Training strategy (proposed, 2026-09-26)
+
+**Masking.** Each frame lists the heads it has labels for (`frames.heads`);
+a missing head adds no loss. Masking also works per point: a court point
+marked hidden or a joint with a low ViTPose score adds nothing. Not labelled
+is not the same as labelled absent: only sources that label every ball
+(TrackNet, RacketVision, WASB frames) teach "no ball here", and only rally
+spans marked exhaustive teach "no event here".
+
+**Fill-in labels.** Before training, the free labelers run on every source
+that lacks them: RF-DETR + ViTPose, WASB, RacketVision, TCD + snap and the
+player rule on F3Set, E2E-Spot, TrackNet, RacketVision and TCD frames. An
+F3Set frame then carries nearly every head: human events and strokes, model
+labels for the rest ([DATA.md](DATA.md#what-each-source-labels-2026-09-26)).
+
+**Batch mix.** Split by look, then by source; phone-style frames are 50% of
+each batch in v1, 60% after self-training
+([DATA.md](DATA.md#batch-mix-proposed)).
+
+**Two stages, for cost.**
+
+1. Per-frame model: backbone + frame heads (people, ball, rackets, court,
+   view, in play) on frames sampled from every source.
+2. Temporal head: run the backbone once over the event datasets, cache its
+   features, and train the temporal transformer (events, strokes, hitter)
+   on the cached features, so every rally in 335 h can be used.
+3. Optionally, a short end-to-end fine-tune of both.
+
+**Self-training, Astra only where the model is unsure.**
+
+1. Train v1 on everything free plus the Astra-labelled clips.
+2. Run v1 on all phone-style footage (free).
+3. Keep predictions that are confident and pass the consistency filters as
+   labels.
+4. Send only doubtful keyframes to Astra: low confidence, failed filters, or
+   disagreement with a rule (player pick, ball-motion in play). A few
+   hundred calls a round, about one Codex top-up, against ~1,800 calls per
+   hour of video when labelling every 2 s.
+5. Retrain; repeat while the test set improves (two or three rounds
+   expected).
+
+Human effort: confirm the test set once (192 frames); each round, skim the
+model's output in the video review and flag clear errors (~10-15 min); check
+~20 rallies of own footage for strokes and hit timing, which single frames
+cannot score. Court is the head most likely to need Astra, since TCD fails on
+low phone cameras.
+
 Augment for handheld footage: perspective warps, rotation, crop and scale
 jitter, blur, compression, colour and exposure shifts.
 

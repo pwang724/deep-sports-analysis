@@ -6,6 +6,76 @@ No dataset labels everything at once. Training merges three kinds of label:
 2. **Labeler output** on unlabelled footage: the best available model per task.
 3. **Astra labels**, via the Codex CLI.
 
+Nearly all human labels are broadcast; the footage the model must work on is
+phone-style (one fixed camera behind a baseline, amateur courts). The free
+labelers run on both, so most heads can be labelled on phone-style frames at
+no cost; events, strokes and in play are human-labelled only on broadcast.
+
+## What each source labels (2026-09-26)
+
+Rows are sources, columns are heads. **H** human, **A** Astra, **M** a
+labeler model (free, runs on any frame), **R** a rule, **-** no label (the
+head's loss is masked). Counts are labels, not frames, where they differ.
+kf = Astra keyframe. Broadcast = B, phone-style = P.
+
+| Source | Look | Size | Boxes | Joints | Head top | Player pick | Rackets | Ball | Court | View | In play | Hit / bounce | Hitter | FH / BH | Fine stroke |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| F3Set | B | 110 matches, 262 h (27 h labelled) | M | M | R | R | M | M | M (TCD + snap) | R | **H** 11.6k rallies | **H** 42.8k | **H** | **H** 31.2k | **H** |
+| E2E-Spot | B | 28 matches, 73 h (13 h labelled) | M | M | R | R | M | M | M (TCD + snap) | R | **H** 3.4k rallies | **H** 33.8k | **H** | **H** 8.2k | - |
+| TrackNet | B | ~20k frames | M | M | R | R | M | **H** ~20k | M (TCD + snap) | R | - | **H** flags | - | - | - |
+| RacketVision | B | 21.5k frames (431 rallies) | M | M | R | R | **H** 8.3k | **H** 21.5k | M (TCD + snap) | R | - | - | - | - | - |
+| TennisCourtDetector | B | 8.8k frames | M | M | R | R | M | M | **H** 8.8k | R | - | - | - | - | - |
+| TennisSegmentation | B | 197 frames | **H** | M | R | **H** | M | M | M (TCD + snap) | R | - | - | - | - | - |
+| Tennis Player Actions | close-up | 2k images | **H** (1 player) | **H** | R | - | M | - | - | - | - | - | - | **H** (4 classes) | - |
+| clips_v1 | mostly P | 100 clips, 45.6k frames | M 222k | M 222k | R 222k | **A** 501 kf + R | M 33k | M 38.5k | **A** + snap, 38.5k (406 kf) | **A** 45.6k | **A** 494 kf + R | - | - | - | - |
+| YouTube amateur, unlabelled | P | 150 videos (short segments) | M | M | R | - | M | M | - | - | R | - | - | - | - |
+| Own sessions | P | 3 sessions, ~3.7 h | M | M | R | - | M | M | - | - | R | - | - | - | - |
+
+Quality behind the letters (numbers in [RESULTS-training.md](../RESULTS-training.md)):
+
+| Label | Measured | Not yet measured / gap |
+|---|---|---|
+| Boxes, RF-DETR | 100% recall, IoU 0.89-0.90 (TennisSegmentation) | - |
+| Joints, ViTPose | OKS 0.82 (Tennis Player Actions) | far player; P footage |
+| Head top, rule | 1.9 px median from Astra | 9% flagged by the filters on clips_v1 |
+| Player pick, rule | 99.0% right with a TCD court (TennisSegmentation); 86% agree with Astra on P | needs a court |
+| Rackets, RacketVision model | 93% within 0.1 racket lengths on the labelled box, 81% full frame | far racket; P footage |
+| Ball, WASB | F1 0.90 at 4 px (TrackNet), 0.80 (RacketVision) | P footage; 8.1% flagged off track on clips_v1 |
+| Court, TCD + snap | 97.9% within 7 px (TCD val) | finds a court on only 29-44% of P view keyframes |
+| Court, Astra + snap | 99.7% within 7 px (TCD val) | only source of P courts |
+| View, Astra | 99% vs our cut lists | - |
+| View, rule (TCD + snap finds a court) | never a false yes | finds 29% of views on P; P is nearly always a view |
+| In play, Astra | 83% standalone, 65% in the slim keyframe call | - |
+| In play, WASB ball-motion rule | 83% agree with Astra | no ground truth |
+| Events, strokes (F3Set, E2E-Spot) | frames aligned (spot check on 9 matches) | none on P |
+
+Feet are deferred; track identity has no labels anywhere. Fill-in labels (M,
+R) on broadcast sources are not run yet: they are the next step of the
+training set build.
+
+## Batch mix (proposed)
+
+Batches are split by look first, then by source, so phone-style frames are
+half of what the backbone sees even though most human labels are broadcast.
+Events and strokes are learned on broadcast and carried to P by the shared
+backbone; self-training then labels them on P.
+
+| Share of each batch | v1 | Round 2+ (after self-training) |
+|---|---|---|
+| P, Astra-labelled (clips_v1) | 35% | 20% |
+| P, model pseudo-labels that pass the filters (own sessions, YouTube amateur) | - | 35% |
+| P, free labels only (people, ball, rackets; other heads masked) | 15% | 5% |
+| B events (F3Set + E2E-Spot, fill-in labels added) | 30% | 25% |
+| B ball (TrackNet + RacketVision) | 10% | 7.5% |
+| B court (TennisCourtDetector) | 10% | 7.5% |
+| **P total** | **50%** | **60%** |
+
+Loss weights are set per head so no head dominates. The shares are starting
+points, tuned on the test set: a lagging P head gets more of its sources; a
+broadcast head that collapses gets its share back. The B-events share is the
+one to watch: too little and strokes and hits never learn, too much and the
+backbone drifts to broadcast.
+
 ## Ground truth by task
 
 Ground truth means labelled by people. Our own model outputs (RF-DETR boxes,
